@@ -6,7 +6,7 @@ import (
 
 	"github.com/cdutwhu/debog/fn"
 	"github.com/cdutwhu/gotil/io"
-	"github.com/cdutwhu/n3-util/n3json"
+	jsontool "github.com/cdutwhu/json-tool"
 )
 
 var (
@@ -14,12 +14,17 @@ var (
 	fEf         = fmt.Errorf
 	fSf         = fmt.Sprintf
 	sReplaceAll = strings.ReplaceAll
+	sHasSuffix  = strings.HasSuffix
+	sRepeat     = strings.Repeat
+	sContains   = strings.Contains
+	sSplit      = strings.Split
+	sJoin       = strings.Join
 
-	failOnErr     = fn.FailOnErr
-	failOnErrWhen = fn.FailOnErrWhen
-	warnOnErr     = fn.WarnOnErr
-	enableLog2F   = fn.EnableLog2F
-	mustWriteFile = io.MustWriteFile
-
-	jsonScalarSelX = n3json.ScalarSelX
+	failOnErr      = fn.FailOnErr
+	failOnErrWhen  = fn.FailOnErrWhen
+	warnOnErr      = fn.WarnOnErr
+	enableLog2F    = fn.EnableLog2F
+	mustWriteFile  = io.MustWriteFile
+	isValidJSON    = jsontool.IsValid
+	jsonScalarSelX = jsontool.ScalarSelX
 )

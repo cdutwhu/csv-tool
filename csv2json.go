@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/cdutwhu/n3-util/n3err"
 )
 
 // File2JSON : read the content of CSV File
@@ -42,14 +40,14 @@ func File2JSON(path string, vertical, save bool, savePaths ...string) (string, [
 func Reader2JSON(r io.Reader, description string) (string, []string, error) {
 	content, _ := csv.NewReader(r).ReadAll()
 	if len(content) < 1 {
-		return "", nil, n3err.FILE_EMPTY
+		return "", nil, fEf("FILE_EMPTY")
 	}
 
 	headers := make([]string, 0)
 	for i, headE := range content[0] {
 		if headE == "" {
 			headE = fSf("column_%d", i)
-			fPln(warnOnErr("%v: %s - column[%d] is empty, mark [%s]", n3err.CSV_COLUMN_HEADER_EMPTY, description, i, headE))
+			fPln(warnOnErr("%v: %s - column[%d] is empty, mark [%s]", fEf("CSV_COLUMN_HEADER_EMPTY"), description, i, headE))
 		}
 		headers = append(headers, headE)
 	}
@@ -60,63 +58,80 @@ func Reader2JSON(r io.Reader, description string) (string, []string, error) {
 	// Set Column Type
 	mColType := make(map[int]rune)
 	for _, d := range content {
-		for j, y := range d {
+		for col, y := range d {
 			_, fErr := strconv.ParseFloat(y, 32)
 			_, bErr := strconv.ParseBool(y)
 			switch {
-			case fErr == nil:
-				mColType[j] = 'N'
-			case bErr == nil:
-				mColType[j] = 'B'
+			case fErr == nil && mColType[col] != 'S':
+				mColType[col] = 'N'
+			case bErr == nil && mColType[col] != 'S':
+				mColType[col] = 'B'
 			default:
-				mColType[j] = 'S'
+				mColType[col] = 'S'
 			}
 		}
 	}
 	//
 
 	// var buffer bytes.Buffer
-	var buffer strings.Builder
-	buffer.WriteString("[")
-	for i, d := range content {
-		buffer.WriteString("{")
-		for j, y := range d {
-			buffer.WriteString(`"` + headers[j] + `":`)
+	var sb strings.Builder
+	sb.WriteString("[")
+	for row, d := range content {
+		sb.WriteString("{")
+
+		for col, y := range d {
+			sb.WriteString(`"` + headers[col] + `":`)
 
 			// _, fErr := strconv.ParseFloat(y, 32)
 			// _, bErr := strconv.ParseBool(y)
 			// if fErr == nil {
-			// 	buffer.WriteString(y)
+			// 	sb.WriteString(y)
 			// } else if bErr == nil {
-			// 	buffer.WriteString(strings.ToLower(y))
+			// 	sb.WriteString(strings.ToLower(y))
 			// } else {
-			// 	buffer.WriteString((`"` + y + `"`))
+			// 	sb.WriteString((`"` + y + `"`))
 			// }
 
-			switch mColType[j] {
+			switch mColType[col] {
 			case 'N':
-				buffer.WriteString(y)
+				sb.WriteString(y)
 			case 'B':
-				buffer.WriteString(strings.ToLower(y))
+				sb.WriteString(strings.ToLower(y))
 			case 'S':
-				buffer.WriteString((`"` + y + `"`))
+				y = sReplaceAll(y, `"`, `\"`)
+				sb.WriteString(`"` + y + `"`)
+
+				// deal with array value
+				// if len(y) > 0 && y[0] == '[' && y[len(y)-1] == ']' {
+				// 	arrcont := y[1 : len(y)-1]
+				// 	elements := []string{}
+				// 	for _, ele := range sSplit(arrcont, ",") {
+				// 		elements = append(elements, fSf("\"%s\"", ele))
+				// 	}
+				// 	sb.WriteString(`[` + sJoin(elements, ",") + `]`)
+				// } else {
+				// 	sb.WriteString(`"` + y + `"`)
+				// }
 			}
 
 			//end of property
-			if j < len(d)-1 {
-				buffer.WriteString(",")
+			if col < len(d)-1 {
+				sb.WriteString(",")
 			}
 		}
 		//end of object of the array
-		buffer.WriteString("}")
-		if i < len(content)-1 {
-			buffer.WriteString(",")
+		sb.WriteString("}")
+		if row < len(content)-1 {
+			sb.WriteString(",")
 		}
 	}
 
-	buffer.WriteString(`]`)
-	rawMessage := json.RawMessage(buffer.String())
-	jsonstr, err := json.MarshalIndent(rawMessage, "", "  ")
+	sb.WriteString(`]`)
+	rawMessage := json.RawMessage(sb.String())
+	jsonstr := string(rawMessage)
+	failOnErrWhen(!isValidJSON(jsonstr), "%v", fEf("Invalid JSON string")) // validate output json
+	// return jsonstr, headers, nil
+	jsonbytes, err := json.MarshalIndent(rawMessage, "", "  ")
 	failOnErr("%v", err)
-	return string(jsonstr), headers, nil
+	return string(jsonbytes), headers, nil
 }
