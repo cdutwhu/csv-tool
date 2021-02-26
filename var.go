@@ -14,6 +14,7 @@ var (
 	fEf         = fmt.Errorf
 	fSf         = fmt.Sprintf
 	sReplaceAll = strings.ReplaceAll
+	sHasPrefix  = strings.HasPrefix
 	sHasSuffix  = strings.HasSuffix
 	sRepeat     = strings.Repeat
 	sContains   = strings.Contains

@@ -94,11 +94,15 @@ func Reader2JSON(r io.Reader, description string) (string, []string, error) {
 
 			switch mColType[col] {
 			case 'N':
+				if sHasPrefix(y, ".") {
+					y = "0" + y
+				}
 				sb.WriteString(y)
 			case 'B':
 				sb.WriteString(strings.ToLower(y))
 			case 'S':
 				y = sReplaceAll(y, `"`, `\"`)
+				y = sReplaceAll(y, "\n", "\\n")
 				sb.WriteString(`"` + y + `"`)
 
 				// deal with array value
@@ -129,6 +133,11 @@ func Reader2JSON(r io.Reader, description string) (string, []string, error) {
 	sb.WriteString(`]`)
 	rawMessage := json.RawMessage(sb.String())
 	jsonstr := string(rawMessage)
+
+	// if !isValidJSON(jsonstr) {
+	// 	os.WriteFile("./err.json", []byte(jsonstr), 0666)
+	// }
+
 	failOnErrWhen(!isValidJSON(jsonstr), "%v", fEf("Invalid JSON string")) // validate output json
 	// return jsonstr, headers, nil
 	jsonbytes, err := json.MarshalIndent(rawMessage, "", "  ")
