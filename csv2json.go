@@ -52,7 +52,7 @@ func Reader2JSON(r io.Reader, description string) (string, []string, error) {
 		headers = append(headers, headE)
 	}
 
-	//Remove the header row
+	// Remove the header row
 	content = content[1:]
 
 	// Set Column Type
