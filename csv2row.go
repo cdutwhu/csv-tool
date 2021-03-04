@@ -6,14 +6,31 @@ import (
 	"os"
 )
 
-// ReaderByRow :
-func ReaderByRow(r io.Reader, f func(i int, headers, items []string, line string) (ok bool, headerline, rowline string), outcsv string) (string, string, error) {
+// Info :
+func Info(r io.Reader) (string, int, error) {
 	content, err := csv.NewReader(r).ReadAll()
 	if err != nil {
-		return "", "", err
+		return "", -1, err
+	}
+	return sJoin(content[0], ","), len(content) - 1, nil
+}
+
+// FileInfo :
+func FileInfo(csvpath string) (string, int, error) {
+	csvFile, err := os.Open(csvpath)
+	failP1OnErr("The file is not found || wrong root : %v", err)
+	defer csvFile.Close()
+	return Info(csvFile)
+}
+
+// ReaderByRow :
+func ReaderByRow(r io.Reader, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), outcsv string) (string, []string, error) {
+	content, err := csv.NewReader(r).ReadAll()
+	if err != nil {
+		return "", nil, err
 	}
 	if len(content) < 1 {
-		return "", "", fEf("FILE_EMPTY")
+		return "", []string{}, fEf("FILE_EMPTY")
 	}
 
 	headers := make([]string, 0)
@@ -25,94 +42,118 @@ func ReaderByRow(r io.Reader, f func(i int, headers, items []string, line string
 		headers = append(headers, headE)
 	}
 
-	// Remove the header row
+	// Remove The Header Row
 	content = content[1:]
 
-	headerLine := ""
-	allLines := []string{}
-	for row, d := range content {
-		if ok, hLine, rLine := f(row, headers, d, sJoin(d, ",")); ok {
-			headerLine = hLine
-			allLines = append(allLines, rLine)
+	// check
+	N := len(content) // N is row's count
+	hdrRow, allRows := "", []string{}
+	for i, d := range content {
+		if ok, hRow, row := f(i, N, headers, d); ok {
+			hdrRow = hRow
+			if row != "" {
+				allRows = append(allRows, row)
+			}
 		}
 	}
 
-	contentLines := sJoin(allLines, "\n")
+	// save
 	if outcsv != "" {
 		outcsv = sTrimSuffix(outcsv, ".csv") + ".csv"
-		mustWriteFile(outcsv, []byte(headerLine+"\n"+contentLines))
+		mustWriteFile(outcsv, []byte(sTrimSuffix(hdrRow+"\n"+sJoin(allRows, "\n"), "\n")))
 	}
 
-	return headerLine, contentLines, nil
+	return hdrRow, allRows, nil
 }
 
 // File2Rows :
-func File2Rows(csvpath string, f func(i int, headers, items []string, line string) (ok bool, headerline, rowline string), outcsv string) (string, string, error) {
+func File2Rows(csvpath string, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), outcsv string) (string, string, error) {
 	csvFile, err := os.Open(csvpath)
-	failOnErr("The file is not found || wrong root : %v", err)
+	failP1OnErr("The file is not found || wrong root : %v", err)
 	defer csvFile.Close()
-	return ReaderByRow(csvFile, f, outcsv)
+	hRow, rows, err := ReaderByRow(csvFile, f, outcsv)
+	return hRow, sJoin(rows, "\n"), err
 }
 
-// SubFile :
-func SubFile(csvpath string, incCol bool, columns []string, incRow bool, iRows []int, outcsv string) (string, string, error) {
+// SubFile : content iRow start from 0. i.e. 1st content row index is 0
+func SubFile(csvpath string, incColMode bool, hdrNames []string, incRowMode bool, iRows []int, outcsv string) (string, string, error) {
 
 	fnCol, fnRow := notexist, notexist
-	if incCol {
+	if incColMode {
 		fnCol = exist
 	}
-	if incRow {
+	if incRowMode {
 		fnRow = exist
 	}
 
-	return File2Rows(csvpath, func(i int, headers, items []string, line string) (bool, string, string) {
+	return File2Rows(csvpath, func(idx, cnt int, headers, items []string) (bool, string, string) {
 
 		// select needed columns
-		gCols := cvt2GSlc(columns)
+		gHdrNames := cvt2GSlc(hdrNames)
 		cIdxGrp := []interface{}{}
 		for i, header := range headers {
 			switch {
-			case fnCol(header, gCols...):
+			case fnCol(header, gHdrNames...):
 				cIdxGrp = append(cIdxGrp, i)
 			}
 		}
 
-		// filter columns
-		headersLeft := []string{}
+		// filter columns headers
+		hdrLeft := []string{}
 		for i, header := range headers {
 			if exist(i, cIdxGrp...) {
 				if sContains(header, ",") {
 					header = "\"" + header + "\""
 				}
-				headersLeft = append(headersLeft, header)
+				hdrLeft = append(hdrLeft, header)
 			}
 		}
-		headerLine := sJoin(headersLeft, ",")
+		hdrRow := sJoin(hdrLeft, ",")
 
-		itemsLeft := []string{}
+		// filter column items
+		itemLeft := []string{}
 		for i, item := range items {
 			if exist(i, cIdxGrp...) {
 				if sContains(item, ",") {
 					item = "\"" + item + "\""
 				}
-				itemsLeft = append(itemsLeft, item)
+				itemLeft = append(itemLeft, item)
 			}
 		}
-		itemLine := sJoin(itemsLeft, ",")
-
-		// even if no rows to be returned, headerline still be returned
-		if incRow && (iRows == nil || len(iRows) == 0) {
-			return true, headerLine, ""
-		}
+		itemRow := sJoin(itemLeft, ",")
 
 		// select needed rows
-		if fnRow(i, cvt2GSlc(iRows)...) {
-			return true, headerLine, itemLine
+		if fnRow(idx, cvt2GSlc(iRows)...) {
+			return true, hdrRow, itemRow
 		}
 
-		return false, "", ""
+		return true, hdrRow, "" // still "ok" as hdrRow is needed even if empty content
 
 	}, outcsv)
 }
 
-// func SelFile()
+// SelFile :
+// func SelFile(csvpath string, andMode bool, conditions []struct{ header, value string }, outcsv string) (string, string, error) {
+
+// 	return File2Rows(csvpath, func(i int, headers, items []string, line string) (bool, string, string) {
+
+// 		for _, cond := range conditions {
+// 			idx := -1
+// 			for i, hdr := range headers {
+// 				if hdr == cond.header {
+// 					idx = i
+// 					break
+// 				}
+// 			}
+
+// 			//
+// 			if idx != -1 {
+// 				if items[idx] == cond.value {
+
+// 				}
+// 			}
+
+// 		}
+
+// 	}, outcsv)
+// }

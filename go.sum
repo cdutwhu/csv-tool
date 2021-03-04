@@ -2,8 +2,8 @@ github.com/cdutwhu/debog v0.2.11/go.mod h1:qMQrHVozPZKANb+rDva6fnK453xaQ/pXGgo9t
 github.com/cdutwhu/debog v0.2.12 h1:1Si7VftJfLAeSec3NAHoGPPt7Li0R1CHa7mjb+cRO8k=
 github.com/cdutwhu/debog v0.2.12/go.mod h1:qMQrHVozPZKANb+rDva6fnK453xaQ/pXGgo9tXifJQI=
 github.com/cdutwhu/gotil v0.1.17/go.mod h1:pirYHu5zIoVIDfRoWMDEqpRYJnXefeBR1yXoHnPaitc=
-github.com/cdutwhu/gotil v0.1.20 h1:vf/MKwl/nf5bnyf9qpS0isZtpFaNnHOsz+Mqr6nc2PQ=
-github.com/cdutwhu/gotil v0.1.20/go.mod h1:J9chaFSD2sBC6a+TN57vFKgY1ow6M5dRlg7gMZWpdO8=
+github.com/cdutwhu/gotil v0.1.21 h1:hi2gnP40ewmZn5fDXIyuV+LYVQ3AVkFD+Eij6xvRPfQ=
+github.com/cdutwhu/gotil v0.1.21/go.mod h1:J9chaFSD2sBC6a+TN57vFKgY1ow6M5dRlg7gMZWpdO8=
 github.com/cdutwhu/json-tool v0.1.7 h1:whewP08ldKUIWK18Vflqpa8pSASk8WMSucXnptS722g=
 github.com/cdutwhu/json-tool v0.1.7/go.mod h1:1kAmetwM3fXX/+Qx6A7r2KkeuQdxvemBXAJkt9g4r54=
 github.com/clbanning/mxj v1.8.4 h1:HuhwZtbyvyOw+3Z1AowPkU87JkJUSv751ELWaiTpj8I=

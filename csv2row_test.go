@@ -3,6 +3,7 @@ package csvtool
 import (
 	"os"
 	"testing"
+	"time"
 )
 
 func TestCSV2ROW(t *testing.T) {
@@ -63,7 +64,9 @@ func TestCSV2ROW(t *testing.T) {
 }
 
 func TestSubFile(t *testing.T) {
-	enableLog2F(true, "./err.log")
+	defer trackTime(time.Now())
+
+	enableLog2F(true, "./TestSubFile.log")
 
 	dir := "./data/"
 	files, err := os.ReadDir(dir)
@@ -74,12 +77,13 @@ func TestSubFile(t *testing.T) {
 		if !sHasSuffix(file.Name(), ".csv") {
 			continue
 		}
-		// if file.Name() != "compareItemWriting.csv" {
+		// if file.Name() != "data.csv" {
 		// 	continue
 		// }
 
 		fPln(fName)
-		// SubFile(fName, false, []string{"Item Response", "YrLevel", "School", "Age"}, true, []int{0, 1}, "out/"+file.Name())
-		SubFile(fName, true, []string{"Item Response", "YrLevel", "School", "Age", "Id"}, true, iter2Slc(0, 4), "out/"+file.Name())
+		_, n, _ := FileInfo(fName)
+		SubFile(fName, false, []string{"Item Response", "YrLevel", "School", "Age", "substrand_id"}, true, iter2Slc(n-1, -1), "out/"+file.Name())
+		// SubFile(fName, false, []string{"Item Response", "YrLevel", "School", "Age", "substrand_id"}, false, iter2Slc(-2, -1), "out/"+file.Name())
 	}
 }
