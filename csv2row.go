@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"io"
 	"os"
+	"strconv"
 )
 
 // Info :
@@ -24,7 +25,7 @@ func FileInfo(csvpath string) (string, int, error) {
 }
 
 // ReaderByRow :
-func ReaderByRow(r io.Reader, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), outcsv string) (string, []string, error) {
+func ReaderByRow(r io.Reader, f func(i, n int, headers []string, items []interface{}) (ok bool, hdrRow, row string), outcsv string) (string, []string, error) {
 	content, err := csv.NewReader(r).ReadAll()
 	if err != nil {
 		return "", nil, err
@@ -49,7 +50,7 @@ func ReaderByRow(r io.Reader, f func(i, n int, headers, items []string) (ok bool
 	N := len(content) // N is row's count
 	hdrRow, allRows := "", []string{}
 	for i, d := range content {
-		if ok, hRow, row := f(i, N, headers, d); ok {
+		if ok, hRow, row := f(i, N, headers, toGSlc(d)); ok {
 			hdrRow = hRow
 			if row != "" {
 				allRows = append(allRows, row)
@@ -67,7 +68,7 @@ func ReaderByRow(r io.Reader, f func(i, n int, headers, items []string) (ok bool
 }
 
 // File2Rows :
-func File2Rows(csvpath string, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), outcsv string) (string, string, error) {
+func File2Rows(csvpath string, f func(i, n int, headers []string, items []interface{}) (ok bool, hdrRow, row string), outcsv string) (string, string, error) {
 	csvFile, err := os.Open(csvpath)
 	failP1OnErr("The file is not found || wrong root : %v", err)
 	defer csvFile.Close()
@@ -75,8 +76,8 @@ func File2Rows(csvpath string, f func(i, n int, headers, items []string) (ok boo
 	return hRow, sJoin(rows, "\n"), err
 }
 
-// SubFile : content iRow start from 0. i.e. 1st content row index is 0
-func SubFile(csvpath string, incColMode bool, hdrNames []string, incRowMode bool, iRows []int, outcsv string) (string, string, error) {
+// Subset : content iRow start from 0. i.e. 1st content row index is 0
+func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool, iRows []int, outcsv string) (string, string, error) {
 
 	fnCol, fnRow := notexist, notexist
 	if incColMode {
@@ -86,45 +87,62 @@ func SubFile(csvpath string, incColMode bool, hdrNames []string, incRowMode bool
 		fnRow = exist
 	}
 
-	return File2Rows(csvpath, func(idx, cnt int, headers, items []string) (bool, string, string) {
+	gHdrNames, gIRows := toGSlc(hdrNames), toGSlc(iRows)
+	cIndices, hdrRow := []interface{}{}, ""
 
-		// select needed columns
-		gHdrNames := cvt2GSlc(hdrNames)
-		cIdxGrp := []interface{}{}
-		for i, header := range headers {
-			switch {
-			case fnCol(header, gHdrNames...):
-				cIdxGrp = append(cIdxGrp, i)
-			}
-		}
+	fast, min, max := isContInts(iRows)
 
-		// filter columns headers
-		hdrLeft := []string{}
-		for i, header := range headers {
-			if exist(i, cIdxGrp...) {
-				if sContains(header, ",") {
-					header = "\"" + header + "\""
+	return File2Rows(csvpath, func(idx, cnt int, headers []string, items []interface{}) (bool, string, string) {
+
+		// get [hdrRow], [cIndices] once
+		if hdrRow == "" {
+
+			// select needed columns
+			for i, header := range headers {
+				switch {
+				case fnCol(header, gHdrNames...):
+					cIndices = append(cIndices, i)
 				}
-				hdrLeft = append(hdrLeft, header)
 			}
-		}
-		hdrRow := sJoin(hdrLeft, ",")
 
-		// filter column items
-		itemLeft := []string{}
-		for i, item := range items {
-			if exist(i, cIdxGrp...) {
-				if sContains(item, ",") {
-					item = "\"" + item + "\""
+			// filter columns headers
+			hdrLeft := []string{}
+			for i, header := range headers {
+				if exist(i, cIndices...) {
+					if sContains(header, ",") {
+						header = "\"" + header + "\""
+					}
+					hdrLeft = append(hdrLeft, header)
 				}
-				itemLeft = append(itemLeft, item)
+			}
+
+			hdrRow = sJoin(hdrLeft, ",")
+		}
+
+		ok := false
+		if fast {
+			if (incRowMode && idx >= min && idx <= max) || (!incRowMode && (idx < min || idx > max)) {
+				ok = true
+			}
+		} else {
+			if fnRow(idx, gIRows...) {
+				ok = true
 			}
 		}
-		itemRow := sJoin(itemLeft, ",")
 
-		// select needed rows
-		if fnRow(idx, cvt2GSlc(iRows)...) {
-			return true, hdrRow, itemRow
+		if ok {
+			// filter column items
+			itemLeft := []string{}
+			for i, item := range items {
+				if exist(i, cIndices...) {
+					itemStr := item.(string)
+					if sContains(itemStr, ",") {
+						item = "\"" + itemStr + "\""
+					}
+					itemLeft = append(itemLeft, itemStr)
+				}
+			}
+			return true, hdrRow, sJoin(itemLeft, ",")
 		}
 
 		return true, hdrRow, "" // still "ok" as hdrRow is needed even if empty content
@@ -132,28 +150,104 @@ func SubFile(csvpath string, incColMode bool, hdrNames []string, incRowMode bool
 	}, outcsv)
 }
 
-// SelFile :
-// func SelFile(csvpath string, andMode bool, conditions []struct{ header, value string }, outcsv string) (string, string, error) {
+// Select : R : [&, |]; condition relation : [=, !=, >, <, >=, <=]
+func Select(csvpath string, R rune, CGrp []struct {
+	header   string
+	value    interface{}
+	valtype  string
+	relation string
+}, outcsv string) (string, string, error) {
 
-// 	return File2Rows(csvpath, func(i int, headers, items []string, line string) (bool, string, string) {
+	failP1OnErrWhen(notexist(R, '&', '|'), "%v", fEf("R can only be [&, |]"))
+	nCGrp := len(CGrp)
 
-// 		for _, cond := range conditions {
-// 			idx := -1
-// 			for i, hdr := range headers {
-// 				if hdr == cond.header {
-// 					idx = i
-// 					break
-// 				}
-// 			}
+	return File2Rows(csvpath, func(idx, cnt int, headers []string, items []interface{}) (bool, string, string) {
+		CResults := []interface{}{}
+		gHeaders := toGSlc(headers)
 
-// 			//
-// 			if idx != -1 {
-// 				if items[idx] == cond.value {
+	NEXTCONDITION:
+		for _, C := range CGrp {
 
-// 				}
-// 			}
+			if R == '|' && len(CResults) > 0 {
+				break NEXTCONDITION
+			}
 
-// 		}
+			if I := idxOf(C.header, gHeaders...); I != -1 {
+				iVal := items[I]
+				iValStr := iVal.(string)
+				cVal, cValType, cR := C.value, C.valtype, C.relation
 
-// 	}, outcsv)
-// }
+				if cR == "=" {
+					if iVal == cVal {
+						CResults = append(CResults, struct{}{})
+					}
+					continue NEXTCONDITION
+				}
+				if cR == "!=" {
+					if iVal != cVal {
+						CResults = append(CResults, struct{}{})
+					}
+					continue NEXTCONDITION
+				}
+
+				switch cValType {
+				case "int", "int8", "int16", "int32", "int64":
+					cValue := cVal.(int64)
+					iValue, err := strconv.ParseInt(iValStr, 10, 64)
+					failOnErr("%v", err)
+					if (cR == ">" && iValue > cValue) || (cR == ">=" && iValue >= cValue) || (cR == "<" && iValue < cValue) || (cR == "<=" && iValue <= cValue) {
+						CResults = append(CResults, struct{}{})
+						continue NEXTCONDITION
+					}
+
+				case "uint", "uint8", "uint16", "uint32", "uint64":
+					cValue := cVal.(uint64)
+					iValue, err := strconv.ParseUint(iValStr, 10, 64)
+					failOnErr("%v", err)
+					if (cR == ">" && iValue > cValue) || (cR == ">=" && iValue >= cValue) || (cR == "<" && iValue < cValue) || (cR == "<=" && iValue <= cValue) {
+						CResults = append(CResults, struct{}{})
+						continue NEXTCONDITION
+					}
+
+				case "float32", "float64", "float", "double":
+					cValue := cVal.(float64)
+					iValue, err := strconv.ParseFloat(iValStr, 64)
+					failOnErr("%v", err)
+					if (cR == ">" && iValue > cValue) || (cR == ">=" && iValue >= cValue) || (cR == "<" && iValue < cValue) || (cR == "<=" && iValue <= cValue) {
+						CResults = append(CResults, struct{}{})
+						continue NEXTCONDITION
+					}
+
+				default:
+					panic("comparable type [" + cValType + "] is not supported")
+				}
+			}
+		}
+
+		hdrNames := append([]string{}, headers...)
+		for i, name := range hdrNames {
+			if sContains(name, ",") {
+				hdrNames[i] = "\"" + name + "\""
+			}
+		}
+		hdrRow := sJoin(hdrNames, ",")
+
+		if len(CResults) == 0 {
+			return true, hdrRow, ""
+		}
+
+		if (R == '&' && len(CResults) == nCGrp) || (R == '|' && len(CResults) > 0) {
+			itemValues := append([]interface{}{}, items...)
+			for i, value := range itemValues {
+				valStr := value.(string)
+				if sContains(valStr, ",") {
+					itemValues[i] = "\"" + valStr + "\""
+				}
+			}
+			return true, hdrRow, sJoin(toTSlc(itemValues).([]string), ",")
+		}
+
+		return true, hdrRow, ""
+
+	}, outcsv)
+}

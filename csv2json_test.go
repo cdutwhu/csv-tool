@@ -3,10 +3,14 @@ package csvtool
 import (
 	"os"
 	"testing"
+	"time"
+
+	"github.com/cdutwhu/gotil/misc"
 )
 
 func TestCSV2JSON(t *testing.T) {
-	enableLog2F(true, "./err.log")
+	defer misc.TrackTime(time.Now())
+	enableLog2F(true, "./TestCSV2JSON.log")
 
 	dir := "./data/"
 	files, err := os.ReadDir(dir)
@@ -23,7 +27,7 @@ func TestCSV2JSON(t *testing.T) {
 
 		fPln(fName)
 		File2JSON(fName, false, true, sReplaceAll(fName, ".csv", ".json"))
-		File2JSON(fName, true, true, sReplaceAll(fName, ".csv", "1.json"))
+		// File2JSON(fName, true, true, sReplaceAll(fName, ".csv", "1.json"))
 	}
 
 	// path := flag.String("path", "./data/ModulePrerequisites.csv", "Path of the file")

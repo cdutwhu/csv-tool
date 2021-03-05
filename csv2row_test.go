@@ -7,7 +7,7 @@ import (
 )
 
 func TestCSV2ROW(t *testing.T) {
-	enableLog2F(true, "./err.log")
+	enableLog2F(true, "./TestCSV2ROW.log")
 
 	dir := "./data/"
 	files, err := os.ReadDir(dir)
@@ -63,12 +63,11 @@ func TestCSV2ROW(t *testing.T) {
 	}
 }
 
-func TestSubFile(t *testing.T) {
+func TestSubset(t *testing.T) {
 	defer trackTime(time.Now())
+	enableLog2F(true, "./TestSubset.log")
 
-	enableLog2F(true, "./TestSubFile.log")
-
-	dir := "./data/"
+	dir := "./data1/"
 	files, err := os.ReadDir(dir)
 	failOnErr("%v", err)
 
@@ -77,13 +76,45 @@ func TestSubFile(t *testing.T) {
 		if !sHasSuffix(file.Name(), ".csv") {
 			continue
 		}
-		// if file.Name() != "data.csv" {
+		// if file.Name() != "itemResults1.csv" {
 		// 	continue
 		// }
 
 		fPln(fName)
 		_, n, _ := FileInfo(fName)
-		SubFile(fName, false, []string{"Item Response", "YrLevel", "School", "Age", "substrand_id"}, true, iter2Slc(n-1, -1), "out/"+file.Name())
-		// SubFile(fName, false, []string{"Item Response", "YrLevel", "School", "Age", "substrand_id"}, false, iter2Slc(-2, -1), "out/"+file.Name())
+		Subset(fName, false, []string{"Item Response", "YrLevel", "School", "Age", "substrand_id"}, true, iter2slc(n-1, -1), "out/"+file.Name())
+		Subset(fName, true, []string{"School", "YrLevel", "Domain", "Test Name", "Test level", "Test Domain", "Test Item RefID", "Item Response"}, true, iter2slc(0, 20000), "out/"+file.Name())
+	}
+}
+
+func TestSelect(t *testing.T) {
+	defer trackTime(time.Now())
+	enableLog2F(true, "./TestSelect.log")
+
+	dir := "./data1/"
+	files, err := os.ReadDir(dir)
+	failOnErr("%v", err)
+
+	for _, file := range files {
+		fName := dir + file.Name()
+		if !sHasSuffix(file.Name(), ".csv") {
+			continue
+		}
+		// if file.Name() != "itemResults1.csv" {
+		// 	continue
+		// }
+
+		fPln(fName)
+		Select(fName, '&', []struct {
+			header   string
+			value    interface{}
+			valtype  string
+			relation string
+		}{
+			// {header: "School", value: "21221", valtype: "string", relation: "!="},
+			{header: "Domain", value: "Reading", valtype: "string", relation: "="},
+			{header: "Response Correctness", value: "Correct", valtype: "string", relation: "="},
+			{header: "Item Response", value: "", valtype: "string", relation: "="},
+		}, "out/"+file.Name())
 	}
 }
