@@ -2,6 +2,7 @@ package csvtool
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -39,7 +40,10 @@ func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool,
 			hdrLeft := []string{}
 			for i, header := range headers {
 				if exist(i, cIndices...) {
-					if sContains(header, ",") {
+					if hasComma, hasQuote := sContains(header, ","), sContains(header, "\""); hasComma || hasQuote {
+						if hasQuote {
+							header = sReplaceAll(header, "\"", "\"\"")
+						}
 						header = "\"" + header + "\""
 					}
 					hdrLeft = append(hdrLeft, header)
@@ -66,7 +70,10 @@ func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool,
 			for i, item := range items {
 				if exist(i, cIndices...) {
 					itemStr := item.(string)
-					if sContains(itemStr, ",") {
+					if hasComma, hasQuote := sContains(itemStr, ","), sContains(itemStr, "\""); hasComma || hasQuote {
+						if hasQuote {
+							itemStr = sReplaceAll(itemStr, "\"", "\"\"")
+						}
 						item = "\"" + itemStr + "\""
 					}
 					itemLeft = append(itemLeft, itemStr)
@@ -77,7 +84,7 @@ func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool,
 
 		return true, hdrRow, "" // still "ok" as hdrRow is needed even if empty content
 
-	}, outcsv)
+	}, !incColMode, outcsv)
 }
 
 // Select : R : [&, |]; condition relation : [=, !=, >, <, >=, <=]
@@ -153,7 +160,10 @@ func Select(csvpath string, R rune, CGrp []struct {
 
 		hdrNames := append([]string{}, headers...)
 		for i, name := range hdrNames {
-			if sContains(name, ",") {
+			if hasComma, hasQuote := sContains(name, ","), sContains(name, "\""); hasComma || hasQuote {
+				if hasQuote {
+					name = sReplaceAll(name, "\"", "\"\"")
+				}
 				hdrNames[i] = "\"" + name + "\""
 			}
 		}
@@ -176,7 +186,10 @@ func Select(csvpath string, R rune, CGrp []struct {
 			itemValues := append([]interface{}{}, items...)
 			for i, value := range itemValues {
 				valStr := value.(string)
-				if sContains(valStr, ",") {
+				if hasComma, hasQuote := sContains(valStr, ","), sContains(valStr, "\""); hasComma || hasQuote {
+					if hasQuote {
+						valStr = sReplaceAll(valStr, "\"", "\"\"")
+					}
 					itemValues[i] = "\"" + valStr + "\""
 				}
 			}
@@ -185,11 +198,11 @@ func Select(csvpath string, R rune, CGrp []struct {
 
 		return true, hdrRow, ""
 
-	}, outcsv)
+	}, true, outcsv)
 }
 
 // Query : combine Subset(incColMode, all rows) & Select
-func Query(csvpath string, hdrNames []string, R rune, CGrp []struct {
+func Query(csvpath string, incColMode bool, hdrNames []string, R rune, CGrp []struct {
 	header   string
 	value    interface{}
 	valtype  string
@@ -197,14 +210,20 @@ func Query(csvpath string, hdrNames []string, R rune, CGrp []struct {
 }, outcsv string) (string, string, error) {
 
 	tempcsv := "./tempcsv/subset@" + uuid.NewString() + ".csv"
-	// defer os.Remove(tempcsv)
+	defer func() {
+		time.Sleep(20 * time.Millisecond)
+		// os.Remove(tempcsv)
+	}()
 
-	hdrRow, _, err := Subset(csvpath, true, hdrNames, false, []int{}, tempcsv)
+	_, _, err := Select(csvpath, R, CGrp, tempcsv)
 	if err == nil {
-		if hdrRow != "" {
-			return Select(tempcsv, '&', CGrp, outcsv)
-		}
-		return "", "", nil
+		return Subset(tempcsv, incColMode, hdrNames, false, []int{}, outcsv)
 	}
 	return "", "", err
+}
+
+// QueryAtConfig :
+func QueryAtConfig(toml string) (int, error) {
+
+	return 0, nil
 }

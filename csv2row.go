@@ -24,11 +24,9 @@ func FileInfo(csvpath string) (string, int, error) {
 }
 
 // ReaderByRow :
-func ReaderByRow(r io.Reader, f func(i, n int, headers []string, items []interface{}) (ok bool, hdrRow, row string), outcsv string) (string, []string, error) {
+func ReaderByRow(r io.Reader, f func(i, n int, headers []string, items []interface{}) (ok bool, hdrRow, row string), oriHdrIfNoRows bool, outcsv string) (string, []string, error) {
 	content, err := csv.NewReader(r).ReadAll()
-	if err != nil {
-		return "", nil, err
-	}
+	failOnErr("%v", err)
 	if len(content) < 1 {
 		return "", []string{}, fEf("FILE_EMPTY")
 	}
@@ -48,6 +46,11 @@ func ReaderByRow(r io.Reader, f func(i, n int, headers []string, items []interfa
 	// check
 	N := len(content) // N is row's count
 	hdrRow, allRows := "", []string{}
+
+	if oriHdrIfNoRows && N == 0 {
+		hdrRow = sJoin(headers, ",")
+	}
+
 	for i, d := range content {
 		if ok, hRow, row := f(i, N, headers, toGSlc(d)); ok {
 			hdrRow = hRow
@@ -67,10 +70,10 @@ func ReaderByRow(r io.Reader, f func(i, n int, headers []string, items []interfa
 }
 
 // File2Rows :
-func File2Rows(csvpath string, f func(i, n int, headers []string, items []interface{}) (ok bool, hdrRow, row string), outcsv string) (string, string, error) {
+func File2Rows(csvpath string, f func(i, n int, headers []string, items []interface{}) (ok bool, hdrRow, row string), oriHdrIfNoRows bool, outcsv string) (string, string, error) {
 	csvFile, err := os.Open(csvpath)
 	failP1OnErr("The file is not found || wrong root : %v", err)
 	defer csvFile.Close()
-	hRow, rows, err := ReaderByRow(csvFile, f, outcsv)
+	hRow, rows, err := ReaderByRow(csvFile, f, oriHdrIfNoRows, outcsv)
 	return hRow, sJoin(rows, "\n"), err
 }

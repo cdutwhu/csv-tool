@@ -76,21 +76,15 @@ func TestQuery(t *testing.T) {
 		if !sHasSuffix(file.Name(), ".csv") {
 			continue
 		}
-		// if file.Name() != "itemResults1.csv" {
-		// 	continue
-		// }
+		if file.Name() != "data.csv" {
+			continue
+		}
 
 		fPln(fName)
 		Query(fName,
+			false,
 			[]string{
 				"School",
-				"YrLevel",
-				"Domain",
-				"Test Name",
-				"Test level",
-				"Test Domain",
-				"Test Item RefID",
-				"Response Correctness",
 			},
 			'&',
 			[]struct {
@@ -100,8 +94,8 @@ func TestQuery(t *testing.T) {
 				relation string
 			}{
 				{header: "School", value: "21221", valtype: "string", relation: "="},
-				{header: "YrLevel", value: 5, valtype: "int", relation: ">"},
-				{header: "Domain", value: "Reading", valtype: "string", relation: "="},
+				{header: "YrLevel", value: 5, valtype: "uint", relation: ">="},
+				{header: "Domain", value: "Reading", valtype: "string", relation: "!="},
 			},
 			"out/"+file.Name())
 	}

@@ -1,0 +1,41 @@
+# — — — — —  — — — — — — — — — — — — — — — — — — #
+#                   First Query                  
+# — — — — —  — — — — — — — — — — — — — — — — — — #
+
+[[Query]]
+CsvPath = ""
+HdrNames = ["School", "YrLevel"]
+IncColMode = true
+Name = "Query 1"
+OutCsvPath = ""
+RelaOfCond = "&"
+
+[[Query.Cond]]
+Header = "School"
+RelaOfItemValue = "="
+Value = "21221"
+ValueType = "string"
+
+[[Query.Cond]]
+Header = "YrLevel"
+RelaOfItemValue = "="
+Value = 9
+ValueType = "int"
+
+# — — — — —  — — — — — — — — — — — — — — — — — — #
+#                   Second Query                  
+# — — — — —  — — — — — — — — — — — — — — — — — — #
+
+[[Query]]
+CsvPath = ""
+HdrNames = ["School", "Domain"]
+IncColMode = true
+Name = "Query 2"
+OutCsvPath = ""
+RelaOfCond = "&"
+
+[[Query.Cond]]
+Header = "21"
+RelaOfItemValue = "22"
+Value = "23"
+ValueType = "24"
