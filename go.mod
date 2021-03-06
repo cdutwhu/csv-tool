@@ -7,6 +7,7 @@ require (
 	github.com/cdutwhu/gotil v0.1.24
 	github.com/cdutwhu/json-tool v0.1.7
 	github.com/cweill/gotests v1.6.0 // indirect
+	github.com/google/uuid v1.2.0 // indirect
 	golang.org/x/mod v0.4.1 // indirect
 	golang.org/x/sys v0.0.0-20210303074136-134d130e1a04 // indirect
 	golang.org/x/tools v0.1.0 // indirect
