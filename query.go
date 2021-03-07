@@ -1,7 +1,10 @@
 package csvtool
 
 import (
+	"os"
+	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,13 +43,7 @@ func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool,
 			hdrLeft := []string{}
 			for i, header := range headers {
 				if exist(i, cIndices...) {
-					if hasComma, hasQuote := sContains(header, ","), sContains(header, "\""); hasComma || hasQuote {
-						if hasQuote {
-							header = sReplaceAll(header, "\"", "\"\"")
-						}
-						header = "\"" + header + "\""
-					}
-					hdrLeft = append(hdrLeft, header)
+					hdrLeft = append(hdrLeft, mkValid(header))
 				}
 			}
 
@@ -69,14 +66,7 @@ func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool,
 			itemLeft := []string{}
 			for i, item := range items {
 				if exist(i, cIndices...) {
-					itemStr := item.(string)
-					if hasComma, hasQuote := sContains(itemStr, ","), sContains(itemStr, "\""); hasComma || hasQuote {
-						if hasQuote {
-							itemStr = sReplaceAll(itemStr, "\"", "\"\"")
-						}
-						item = "\"" + itemStr + "\""
-					}
-					itemLeft = append(itemLeft, itemStr)
+					itemLeft = append(itemLeft, mkValid(item.(string)))
 				}
 			}
 			return true, hdrRow, sJoin(itemLeft, ",")
@@ -160,12 +150,7 @@ func Select(csvpath string, R rune, CGrp []struct {
 
 		hdrNames := append([]string{}, headers...)
 		for i, name := range hdrNames {
-			if hasComma, hasQuote := sContains(name, ","), sContains(name, "\""); hasComma || hasQuote {
-				if hasQuote {
-					name = sReplaceAll(name, "\"", "\"\"")
-				}
-				hdrNames[i] = "\"" + name + "\""
-			}
+			hdrNames[i] = mkValid(name)
 		}
 		hdrRow := sJoin(hdrNames, ",")
 
@@ -185,13 +170,7 @@ func Select(csvpath string, R rune, CGrp []struct {
 		if ok || CGrp == nil || len(CGrp) == 0 {
 			itemValues := append([]interface{}{}, items...)
 			for i, value := range itemValues {
-				valStr := value.(string)
-				if hasComma, hasQuote := sContains(valStr, ","), sContains(valStr, "\""); hasComma || hasQuote {
-					if hasQuote {
-						valStr = sReplaceAll(valStr, "\"", "\"\"")
-					}
-					itemValues[i] = "\"" + valStr + "\""
-				}
+				itemValues[i] = mkValid(value.(string))
 			}
 			return true, hdrRow, sJoin(toTSlc(itemValues).([]string), ",")
 		}
@@ -207,15 +186,17 @@ func Query(csvpath string, incColMode bool, hdrNames []string, R rune, CGrp []st
 	value    interface{}
 	valtype  string
 	relation string
-}, outcsv string) (string, string, error) {
+}, outcsv string, wg *sync.WaitGroup) (string, string, error) {
 
-	tempcsv := "./tempcsv/subset@" + uuid.NewString() + ".csv"
+	filename := sTrimSuffix(filepath.Base(csvpath), ".csv")
+	tempcsv := "./tempcsv/" + filename + "@" + uuid.NewString() + ".csv"
 	defer func() {
-		time.Sleep(20 * time.Millisecond)
-		// os.Remove(tempcsv)
+		os.Remove(tempcsv)
+		wg.Done()
 	}()
 
 	_, _, err := Select(csvpath, R, CGrp, tempcsv)
+	time.Sleep(5 * time.Millisecond)
 	if err == nil {
 		return Subset(tempcsv, incColMode, hdrNames, false, []int{}, outcsv)
 	}

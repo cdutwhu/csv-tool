@@ -6,6 +6,20 @@ import (
 	"os"
 )
 
+func mkValid(item string) string {
+	if len(item) > 1 {
+		if hasComma, hasQuote := sContains(item, ","), sContains(item[1:len(item)-1], "\""); hasComma || hasQuote {
+			if hasQuote {
+				item = sReplaceAll(item, "\"", "\"\"")
+			}
+			if item[0] != '"' || item[len(item)-1] != '"' {
+				item = "\"" + item + "\""
+			}
+		}
+	}
+	return item
+}
+
 // Info :
 func Info(r io.Reader) (string, int, error) {
 	content, err := csv.NewReader(r).ReadAll()
@@ -32,12 +46,12 @@ func ReaderByRow(r io.Reader, f func(i, n int, headers []string, items []interfa
 	}
 
 	headers := make([]string, 0)
-	for i, headE := range content[0] {
-		if headE == "" {
-			headE = fSf("column_%d", i)
-			fPln(warnOnErr("%v: - column[%d] is empty, mark [%s]", fEf("CSV_COLUMN_HEADER_EMPTY"), i, headE))
+	for i, hdrItem := range content[0] {
+		if hdrItem == "" {
+			hdrItem = fSf("column_%d", i)
+			fPln(warnOnErr("%v: - column[%d] is empty, mark [%s]", fEf("CSV_COLUMN_HEADER_EMPTY"), i, hdrItem))
 		}
-		headers = append(headers, headE)
+		headers = append(headers, mkValid(hdrItem))
 	}
 
 	// Remove The Header Row

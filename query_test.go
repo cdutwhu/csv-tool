@@ -2,6 +2,7 @@ package csvtool
 
 import (
 	"os"
+	"sync"
 	"testing"
 	"time"
 )
@@ -63,7 +64,7 @@ func TestSelect(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
-	
+
 	defer trackTime(time.Now())
 	enableLog2F(true, "./TestQuery.log")
 
@@ -71,20 +72,25 @@ func TestQuery(t *testing.T) {
 	files, err := os.ReadDir(dir)
 	failOnErr("%v", err)
 
+	wg := &sync.WaitGroup{}
+	wg.Add(len(files))
+	// wg.Add(1)
+
 	for _, file := range files {
 		fName := dir + file.Name()
 		if !sHasSuffix(file.Name(), ".csv") {
 			continue
 		}
-		if file.Name() != "data.csv" {
-			continue
-		}
+		// if file.Name() != "data.csv" {
+		// 	continue
+		// }
 
 		fPln(fName)
-		Query(fName,
+		go Query(fName,
 			false,
 			[]string{
 				"School",
+				"YrLevel",
 			},
 			'&',
 			[]struct {
@@ -97,6 +103,9 @@ func TestQuery(t *testing.T) {
 				{header: "YrLevel", value: 5, valtype: "uint", relation: ">="},
 				{header: "Domain", value: "Reading", valtype: "string", relation: "!="},
 			},
-			"out/"+file.Name())
+			"out/"+file.Name(),
+			wg)
 	}
+
+	wg.Wait()
 }
