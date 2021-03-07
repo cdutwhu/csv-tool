@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cdutwhu/gotil/judge"
-
 	"github.com/cdutwhu/debog/fn"
 	"github.com/cdutwhu/gotil"
 	"github.com/cdutwhu/gotil/io"
 	"github.com/cdutwhu/gotil/iter"
+	"github.com/cdutwhu/gotil/judge"
 	"github.com/cdutwhu/gotil/misc"
 	"github.com/cdutwhu/gotil/rflx"
 	jsontool "github.com/cdutwhu/json-tool"

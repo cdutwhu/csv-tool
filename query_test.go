@@ -68,7 +68,7 @@ func TestQuery(t *testing.T) {
 	defer trackTime(time.Now())
 	enableLog2F(true, "./TestQuery.log")
 
-	dir := "./data/"
+	dir := "./data1/"
 	files, err := os.ReadDir(dir)
 	failOnErr("%v", err)
 
@@ -91,6 +91,7 @@ func TestQuery(t *testing.T) {
 			[]string{
 				"School",
 				"YrLevel",
+				"Domain",
 			},
 			'&',
 			[]struct {
@@ -108,4 +109,10 @@ func TestQuery(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestQueryAtConfig(t *testing.T) {
+	n, err := QueryAtConfig("./queryconfig/query.toml")
+	failOnErr("%v", err)
+	fPln(n)
 }

@@ -1,4 +1,4 @@
-package cfg4qry
+package queryconfig
 
 import (
 	"fmt"

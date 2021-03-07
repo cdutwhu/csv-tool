@@ -3,11 +3,11 @@
 # — — — — —  — — — — — — — — — — — — — — — — — — #
 
 [[Query]]
-CsvPath = ""
-HdrNames = ["School", "YrLevel"]
-IncColMode = true
+CsvPath = "./data/itemResults.csv"
+HdrNames = []
+IncColMode = false
 Name = "Query 1"
-OutCsvPath = ""
+OutCsvPath = "./out/itemResults_out.csv"
 RelaOfCond = "&"
 
 [[Query.Cond]]
@@ -16,26 +16,26 @@ RelaOfItemValue = "="
 Value = "21221"
 ValueType = "string"
 
-[[Query.Cond]]
-Header = "YrLevel"
-RelaOfItemValue = "="
-Value = 9
-ValueType = "int"
-
 # — — — — —  — — — — — — — — — — — — — — — — — — #
 #                   Second Query                  
 # — — — — —  — — — — — — — — — — — — — — — — — — #
 
 [[Query]]
-CsvPath = ""
-HdrNames = ["School", "Domain"]
-IncColMode = true
+CsvPath = "./data/itemResults1.csv"
+HdrNames = ["School", "Item Response"]
+IncColMode = false
 Name = "Query 2"
-OutCsvPath = ""
+OutCsvPath = "./out/itemResults1_out.csv"
 RelaOfCond = "&"
 
 [[Query.Cond]]
-Header = "21"
-RelaOfItemValue = "22"
-Value = "23"
-ValueType = "24"
+Header = "Domain"
+RelaOfItemValue = "!="
+Value = "Reading"
+ValueType = "string"
+
+[[Query.Cond]]
+Header = "YrLevel"
+RelaOfItemValue = "<"
+Value = 9
+ValueType = "int"

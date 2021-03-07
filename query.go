@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/BurntSushi/toml"
+	"github.com/cdutwhu/csv-tool/queryconfig"
 	"github.com/google/uuid"
 )
 
@@ -119,7 +121,13 @@ func Select(csvpath string, R rune, CGrp []struct {
 
 				switch cValType {
 				case "int", "int8", "int16", "int32", "int64":
-					cValue := int64(cVal.(int))
+					var cValue int64
+					if i64Val, ok := cVal.(int64); ok {
+						cValue = i64Val
+					} else if intVal, ok := cVal.(int); ok {
+						cValue = int64(intVal)
+					}
+					// cValue := int64(cVal.(int))
 					iValue, err := strconv.ParseInt(iValStr, 10, 64)
 					failOnErr("%v", err)
 					if (cR == ">" && iValue > cValue) || (cR == ">=" && iValue >= cValue) || (cR == "<" && iValue < cValue) || (cR == "<=" && iValue <= cValue) {
@@ -127,7 +135,13 @@ func Select(csvpath string, R rune, CGrp []struct {
 					}
 
 				case "uint", "uint8", "uint16", "uint32", "uint64":
-					cValue := uint64(cVal.(int))
+					var cValue uint64
+					if i64Val, ok := cVal.(int64); ok {
+						cValue = uint64(i64Val)
+					} else if intVal, ok := cVal.(int); ok {
+						cValue = uint64(intVal)
+					}
+					// cValue := uint64(cVal.(int))
 					iValue, err := strconv.ParseUint(iValStr, 10, 64)
 					failOnErr("%v", err)
 					if (cR == ">" && iValue > cValue) || (cR == ">=" && iValue >= cValue) || (cR == "<" && iValue < cValue) || (cR == "<=" && iValue <= cValue) {
@@ -192,7 +206,9 @@ func Query(csvpath string, incColMode bool, hdrNames []string, R rune, CGrp []st
 	tempcsv := "./tempcsv/" + filename + "@" + uuid.NewString() + ".csv"
 	defer func() {
 		os.Remove(tempcsv)
-		wg.Done()
+		if wg != nil {
+			wg.Done()
+		}
 	}()
 
 	_, _, err := Select(csvpath, R, CGrp, tempcsv)
@@ -204,7 +220,48 @@ func Query(csvpath string, incColMode bool, hdrNames []string, R rune, CGrp []st
 }
 
 // QueryAtConfig :
-func QueryAtConfig(toml string) (int, error) {
+func QueryAtConfig(tomlPath string) (int, error) {
 
-	return 0, nil
+	config := &queryconfig.QueryConfig{}
+	if _, err := toml.DecodeFile(tomlPath, config); err != nil {
+		return 0, err
+	}
+	// failOnErr("%v", err)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(len(config.Query))
+
+	for _, qry := range config.Query {
+
+		cond := []struct {
+			header   string
+			value    interface{}
+			valtype  string
+			relation string
+		}{}
+
+		for _, c := range qry.Cond {
+			cond = append(cond, struct {
+				header   string
+				value    interface{}
+				valtype  string
+				relation string
+			}{header: c.Header, value: c.Value, valtype: c.ValueType, relation: c.RelaOfItemValue})
+		}
+
+		fPln("Processing ... " + qry.Name)
+
+		go Query(qry.CsvPath,
+			qry.IncColMode,
+			qry.HdrNames,
+			rune(qry.RelaOfCond[0]),
+			cond,
+			qry.OutCsvPath,
+			wg,
+		)
+	}
+
+	wg.Wait()
+
+	return len(config.Query), nil
 }
