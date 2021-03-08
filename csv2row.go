@@ -21,16 +21,16 @@ func mkValid(item string) string {
 }
 
 // Info :
-func Info(r io.Reader) (string, int, error) {
+func Info(r io.Reader) ([]string, int, error) {
 	content, err := csv.NewReader(r).ReadAll()
 	if err != nil {
-		return "", -1, err
+		return nil, -1, err
 	}
-	return sJoin(content[0], ","), len(content) - 1, nil
+	return content[0], len(content) - 1, nil
 }
 
 // FileInfo :
-func FileInfo(csvpath string) (string, int, error) {
+func FileInfo(csvpath string) ([]string, int, error) {
 	csvFile, err := os.Open(csvpath)
 	failP1OnErr("The file is not found || wrong root : %v", err)
 	defer csvFile.Close()

@@ -33,6 +33,7 @@ var (
 	idxOf           = gotil.IndexOf
 	toGSlc          = rflx.ToGSlc
 	toTSlc          = rflx.ToTSlc
+	equal           = rflx.Equal
 	failOnErr       = fn.FailOnErr
 	failP1OnErr     = fn.FailP1OnErr
 	failOnErrWhen   = fn.FailOnErrWhen
