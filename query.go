@@ -13,7 +13,7 @@ import (
 )
 
 // Subset : content iRow start from 0. i.e. 1st content row index is 0
-func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool, iRows []int, outcsv string) (string, string, error) {
+func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool, iRows []int, outcsv string) (string, []string, error) {
 
 	fnCol, fnRow := notexist, notexist
 	if incColMode {
@@ -85,7 +85,7 @@ func Select(csvpath string, R rune, CGrp []struct {
 	value    interface{}
 	valtype  string
 	relation string
-}, outcsv string) (string, string, error) {
+}, outcsv string) (string, []string, error) {
 
 	failP1OnErrWhen(notexist(R, '&', '|'), "%v", fEf("R can only be [&, |]"))
 	nCGrp := len(CGrp)
@@ -171,7 +171,7 @@ func Select(csvpath string, R rune, CGrp []struct {
 		ok := false
 
 		// Has conditions
-		if CGrp != nil && len(CGrp) > 0 {
+		if len(CGrp) > 0 {
 			if len(CResults) == 0 {
 				return true, hdrRow, ""
 			}
@@ -181,7 +181,7 @@ func Select(csvpath string, R rune, CGrp []struct {
 		}
 
 		// No conditions OR condition ok
-		if ok || CGrp == nil || len(CGrp) == 0 {
+		if ok || len(CGrp) == 0 {
 			itemValues := append([]interface{}{}, items...)
 			for i, value := range itemValues {
 				itemValues[i] = mkValid(value.(string))
@@ -200,7 +200,7 @@ func Query(csvpath string, incColMode bool, hdrNames []string, R rune, CGrp []st
 	value    interface{}
 	valtype  string
 	relation string
-}, outcsv string, wg *sync.WaitGroup) (string, string, error) {
+}, outcsv string, wg *sync.WaitGroup) (string, []string, error) {
 
 	filename := sTrimSuffix(filepath.Base(csvpath), ".csv")
 	tempcsv := "./tempcsv/" + filename + "@" + uuid.NewString() + ".csv"
@@ -216,7 +216,7 @@ func Query(csvpath string, incColMode bool, hdrNames []string, R rune, CGrp []st
 	if err == nil {
 		return Subset(tempcsv, incColMode, hdrNames, false, []int{}, outcsv)
 	}
-	return "", "", err
+	return "", nil, err
 }
 
 // QueryAtConfig :

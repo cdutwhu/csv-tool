@@ -20,7 +20,7 @@ func mkValid(item string) string {
 	return item
 }
 
-// Info :
+// Info : headers, nItem, error
 func Info(r io.Reader) ([]string, int, error) {
 	content, err := csv.NewReader(r).ReadAll()
 	if err != nil {
@@ -29,7 +29,7 @@ func Info(r io.Reader) ([]string, int, error) {
 	return content[0], len(content) - 1, nil
 }
 
-// FileInfo :
+// FileInfo : headers, nItem, error
 func FileInfo(csvpath string) ([]string, int, error) {
 	csvFile, err := os.Open(csvpath)
 	failP1OnErr("The file is not found || wrong root : %v", err)
@@ -65,15 +65,25 @@ func ReaderByRow(r io.Reader, f func(i, n int, headers []string, items []interfa
 		hdrRow = sJoin(headers, ",")
 	}
 
+	// if no f provided, we select all rows //
+	if f == nil {
+		hdrRow = sJoin(headers, ",")
+		for _, d := range content {
+			allRows = append(allRows, sJoin(d, ","))
+		}
+		goto SAVE
+	}
+
 	for i, d := range content {
 		if ok, hRow, row := f(i, N, headers, toGSlc(d)); ok {
 			hdrRow = hRow
-			if row != "" {
+			if row != "" { // we use f to return row content for deciding wether to add this row
 				allRows = append(allRows, row)
 			}
 		}
 	}
 
+SAVE:
 	// save
 	if outcsv != "" {
 		outcsv = sTrimSuffix(outcsv, ".csv") + ".csv"
@@ -84,10 +94,10 @@ func ReaderByRow(r io.Reader, f func(i, n int, headers []string, items []interfa
 }
 
 // File2Rows :
-func File2Rows(csvpath string, f func(i, n int, headers []string, items []interface{}) (ok bool, hdrRow, row string), oriHdrIfNoRows bool, outcsv string) (string, string, error) {
+func File2Rows(csvpath string, f func(i, n int, headers []string, items []interface{}) (ok bool, hdrRow, row string), oriHdrIfNoRows bool, outcsv string) (string, []string, error) {
 	csvFile, err := os.Open(csvpath)
 	failP1OnErr("The file is not found || wrong root : %v", err)
 	defer csvFile.Close()
 	hRow, rows, err := ReaderByRow(csvFile, f, oriHdrIfNoRows, outcsv)
-	return hRow, sJoin(rows, "\n"), err
+	return hRow, rows, err
 }

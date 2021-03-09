@@ -34,6 +34,9 @@ var (
 	toGSlc          = rflx.ToGSlc
 	toTSlc          = rflx.ToTSlc
 	equal           = rflx.Equal
+	cover           = rflx.CanCover
+	union           = rflx.Union
+	toSet           = rflx.ToSet
 	failOnErr       = fn.FailOnErr
 	failP1OnErr     = fn.FailP1OnErr
 	failOnErrWhen   = fn.FailOnErrWhen
@@ -41,6 +44,7 @@ var (
 	warnOnErr       = fn.WarnOnErr
 	enableLog2F     = fn.EnableLog2F
 	mustWriteFile   = io.MustWriteFile
+	mustAppendFile  = io.MustAppendFile
 	iter2slc        = iter.Iter2Slc
 	isContInts      = judge.IsContInts
 	trackTime       = misc.TrackTime
