@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cdutwhu/gotil/misc"
+	"github.com/digisan/gotk"
 )
 
 func TestCSV2JSON(t *testing.T) {
-	defer misc.TrackTime(time.Now())
+	defer gotk.TrackTime(time.Now())
 	enableLog2F(true, "./TestCSV2JSON.log")
 
 	dir := "./data/"
@@ -27,7 +27,7 @@ func TestCSV2JSON(t *testing.T) {
 
 		fPln(fName)
 		File2JSON(fName, false, true, sReplaceAll(fName, ".csv", ".json"))
-		// File2JSON(fName, true, true, sReplaceAll(fName, ".csv", "1.json"))
+		File2JSON(fName, true, true, sReplaceAll(fName, ".csv", "1.json"))
 	}
 
 	// path := flag.String("path", "./data/ModulePrerequisites.csv", "Path of the file")

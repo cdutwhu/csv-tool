@@ -41,11 +41,11 @@ func Combine(csvfileA, csvfileB string, linkHeaders []string, onlyLinkedRow bool
 
 	headersA, _, err := FileInfo(csvfileA)
 	failOnErr("%v", err)
-	failOnErrWhen(!ts.Superset(headersA, linkHeaders), "%v", fEf("headers of csv-A must have every link header"))
+	failOnErrWhen(!ts.SuperEq(headersA, linkHeaders), "%v", fEf("headers of csv-A must have every link header"))
 
 	headersB, _, err := FileInfo(csvfileB)
 	failOnErr("%v", err)
-	failOnErrWhen(!ts.Superset(headersB, linkHeaders), "%v", fEf("headers of csv-B must have every link header"))
+	failOnErrWhen(!ts.SuperEq(headersB, linkHeaders), "%v", fEf("headers of csv-B must have every link header"))
 
 	Create(outcsv, ts.MkSet(ts.Union(headersA, headersB)...)...)
 

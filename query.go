@@ -42,10 +42,7 @@ func Unique(csvpath, outcsv string) (string, []string, error) {
 // Subset : content iRow start from 0. i.e. 1st content row index is 0
 func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool, iRows []int, outcsv string) (string, []string, error) {
 
-	fnCol, fnRow := ts.NotIn, ti.NotIn
-	if incColMode {
-		fnCol = ts.In
-	}
+	fnRow := ti.NotIn
 	if incRowMode {
 		fnRow = ti.In
 	}
@@ -57,17 +54,26 @@ func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool,
 
 		// get [hdrRow], [cIndices] once
 		if hdrRow == "" {
-			// select needed columns
-			cIndices = tsi.FM(headers,
-				func(i int, e string) bool { return fnCol(e, hdrNames...) },
-				func(i int, e string) int { return i },
-			)
-			// filter columns headers
-			hdrLeft := ts.FM(headers,
-				func(i int, e string) bool { return ti.In(i, cIndices...) },
-				func(i int, e string) string { return mkValid(e) },
-			)
-			hdrRow = sJoin(hdrLeft, ",")
+			// select needed columns, cIndices is qualified header's original index in file headers
+			var hdrRt []string
+			if incColMode {
+				cIndices = tsi.FM(hdrNames,
+					func(i int, e string) bool { return ts.In(e, headers...) },
+					func(i int, e string) int { return ts.IdxOf(e, headers...) },
+				)
+				hdrRt = ts.Reorder(headers, cIndices) // Reorder has filter
+				hdrRt = ts.FM(hdrRt, nil, func(i int, e string) string { return mkValid(e) })
+			} else {
+				cIndices = tsi.FM(headers,
+					func(i int, e string) bool { return ts.NotIn(e, hdrNames...) },
+					func(i int, e string) int { return i },
+				)
+				hdrRt = ts.FM(headers,
+					func(i int, e string) bool { return ti.In(i, cIndices...) },
+					func(i int, e string) string { return mkValid(e) },
+				)
+			}
+			hdrRow = sJoin(hdrRt, ",")
 		}
 
 		ok := false
@@ -83,12 +89,18 @@ func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool,
 
 		if ok {
 			// filter column items
-			itemLeft := ts.FM(items,
-				func(i int, e string) bool { return ti.In(i, cIndices...) },
-				func(i int, e string) string { return mkValid(e) },
-			)
+			var itemsRt []string
+			if incColMode {
+				itemsRt = ts.Reorder(items, cIndices)
+				itemsRt = ts.FM(itemsRt, nil, func(i int, e string) string { return mkValid(e) })
+			} else {
+				itemsRt = ts.FM(items,
+					func(i int, e string) bool { return ti.In(i, cIndices...) },
+					func(i int, e string) string { return mkValid(e) },
+				)
+			}
 
-			return true, hdrRow, sJoin(itemLeft, ",")
+			return true, hdrRow, sJoin(itemsRt, ",")
 		}
 
 		return true, hdrRow, "" // still "ok" as hdrRow is needed even if empty content

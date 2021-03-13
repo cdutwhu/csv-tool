@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 )
- 
+
 func TestSubset(t *testing.T) {
 
 	defer trackTime(time.Now())
@@ -28,8 +28,8 @@ func TestSubset(t *testing.T) {
 
 		fPln(fName)
 		_, n, _ := FileInfo(fName)
-		Subset(fName, false, []string{"Item Response", "YrLevel", "School", "Age", "substrand_id"}, true, iter2slc(n-1, -1), "out/"+file.Name())
-		Subset(fName, true, []string{"School", "YrLevel", "Domain", "Test Name", "Test level", "Test Domain", "Test Item RefID", "Item Response"}, true, iter2slc(0, 20000), "out/"+file.Name())
+		Subset(fName, false, []string{"Domain", "Item Response", "YrLevel", "School", "Age", "substrand_id"}, true, iter2slc(n-1, -1), "out/"+file.Name())
+		Subset(fName, true, []string{"School", "Domain", "YrLevel", "XXX", "Test Name", "Test level", "Test Domain", "Test Item RefID", "Item Response"}, true, iter2slc(0, 20000), "out1/"+file.Name())
 	}
 }
 
@@ -88,11 +88,15 @@ func TestQuery(t *testing.T) {
 
 		fPln(fName)
 		go Query(fName,
-			false,
+			true,
 			[]string{
-				"School",
-				"YrLevel",
 				"Domain",
+				"School",
+				"YrLevel",				
+				"Test Name",
+				"Test level",
+				"Test Domain",
+				"Test Item RefID",
 			},
 			'&',
 			[]struct {
@@ -102,7 +106,7 @@ func TestQuery(t *testing.T) {
 				relation string
 			}{
 				{header: "School", value: "21221", valtype: "string", relation: "="},
-				{header: "YrLevel", value: 5, valtype: "uint", relation: ">="},
+				{header: "YrLevel", value: 5, valtype: "uint", relation: ">"},
 				{header: "Domain", value: "Reading", valtype: "string", relation: "!="},
 			},
 			"out/"+file.Name(),

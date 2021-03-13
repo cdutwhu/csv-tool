@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	"github.com/cdutwhu/debog/fn"
-	"github.com/cdutwhu/gotil/iter"
 	"github.com/cdutwhu/gotil/judge"
-	"github.com/cdutwhu/gotil/misc"
 	jsontool "github.com/cdutwhu/json-tool"
+	"github.com/digisan/gotk"
 	"github.com/digisan/gotk/io"
+	"github.com/digisan/gotk/iter"
 )
 
 var (
@@ -36,7 +36,7 @@ var (
 	mustAppendFile  = io.MustAppendFile
 	iter2slc        = iter.Iter2Slc
 	isContInts      = judge.IsContInts
-	trackTime       = misc.TrackTime
+	trackTime       = gotk.TrackTime
 	isValidJSON     = jsontool.IsValid
 	jsonScalarSelX  = jsontool.ScalarSelX
 )
