@@ -2,17 +2,18 @@ package csvtool
 
 import (
 	"os"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
 )
-
+ 
 func TestSubset(t *testing.T) {
 
 	defer trackTime(time.Now())
 	enableLog2F(true, "./TestSubset.log")
 
-	dir := "./data1/"
+	dir := "./data/"
 	files, err := os.ReadDir(dir)
 	failOnErr("%v", err)
 
@@ -68,7 +69,7 @@ func TestQuery(t *testing.T) {
 	defer trackTime(time.Now())
 	enableLog2F(true, "./TestQuery.log")
 
-	dir := "./data1/"
+	dir := "./data/"
 	files, err := os.ReadDir(dir)
 	failOnErr("%v", err)
 
@@ -115,4 +116,35 @@ func TestQueryAtConfig(t *testing.T) {
 	n, err := QueryAtConfig("./queryconfig/query.toml")
 	failOnErr("%v", err)
 	fPln(n)
+}
+
+func TestUnique(t *testing.T) {
+	type args struct {
+		csvpath string
+		outcsv  string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		want1   []string
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1, err := Unique(tt.args.csvpath, tt.args.outcsv)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Unique() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Unique() got = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got1, tt.want1) {
+				t.Errorf("Unique() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
 }

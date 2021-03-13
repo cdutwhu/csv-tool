@@ -111,6 +111,16 @@ func TestCombine(t *testing.T) {
 				outcsv:          "./out/combine.csv",
 			},
 		},
+		{
+			name: "OK",
+			args: args{
+				csvfileA:        "./data/Modules.csv",
+				csvfileB:        "./data/Questions.csv",
+				linkHeaders:     []string{"module_version_id"},
+				onlyKeepLinkRow: false,
+				outcsv:          "./out/combine1.csv",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

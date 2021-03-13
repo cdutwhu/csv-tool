@@ -5,13 +5,11 @@ import (
 	"strings"
 
 	"github.com/cdutwhu/debog/fn"
-	"github.com/cdutwhu/gotil"
-	"github.com/cdutwhu/gotil/io"
 	"github.com/cdutwhu/gotil/iter"
 	"github.com/cdutwhu/gotil/judge"
 	"github.com/cdutwhu/gotil/misc"
-	"github.com/cdutwhu/gotil/rflx"
 	jsontool "github.com/cdutwhu/json-tool"
+	"github.com/digisan/gotk/io"
 )
 
 var (
@@ -28,15 +26,6 @@ var (
 	sTrimSuffix = strings.TrimSuffix
 	sTrim       = strings.Trim
 
-	exist           = gotil.Exist
-	notexist        = gotil.NotExist
-	idxOf           = gotil.IndexOf
-	toGSlc          = rflx.ToGSlc
-	toTSlc          = rflx.ToTSlc
-	equal           = rflx.Equal
-	cover           = rflx.CanCover
-	union           = rflx.Union
-	toSet           = rflx.ToSet
 	failOnErr       = fn.FailOnErr
 	failP1OnErr     = fn.FailP1OnErr
 	failOnErrWhen   = fn.FailOnErrWhen

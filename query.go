@@ -9,46 +9,64 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/cdutwhu/csv-tool/queryconfig"
+	"github.com/digisan/gotk/slice/ti"
+	"github.com/digisan/gotk/slice/ti32"
+	"github.com/digisan/gotk/slice/ts"
+	"github.com/digisan/gotk/slice/tsi"
 	"github.com/google/uuid"
 )
+
+// Unique : remove repeated items
+func Unique(csvpath, outcsv string) (string, []string, error) {
+	defer File2Rows(outcsv, nil, true, "")
+
+	m := make(map[string]struct{})
+	return File2Rows(
+		csvpath,
+		func(idx, cnt int, headers, items []string) (bool, string, string) {
+			row := sJoin(items, ",")
+			if _, ok := m[row]; ok {
+				return false, "", ""
+			}
+			m[row] = struct{}{}
+
+			headers4w := ts.FM(headers, nil, func(i int, e string) string { return mkValid(e) })
+			items4w := ts.FM(items, nil, func(i int, e string) string { return mkValid(e) })
+			return true, sJoin(headers4w, ","), sJoin(items4w, ",")
+		},
+		true,
+		outcsv,
+	)
+}
 
 // Subset : content iRow start from 0. i.e. 1st content row index is 0
 func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool, iRows []int, outcsv string) (string, []string, error) {
 
-	fnCol, fnRow := notexist, notexist
+	fnCol, fnRow := ts.NotIn, ti.NotIn
 	if incColMode {
-		fnCol = exist
+		fnCol = ts.In
 	}
 	if incRowMode {
-		fnRow = exist
+		fnRow = ti.In
 	}
 
-	gHdrNames, gIRows := toGSlc(hdrNames), toGSlc(iRows)
-	cIndices, hdrRow := []interface{}{}, ""
-
+	cIndices, hdrRow := []int{}, ""
 	fast, min, max := isContInts(iRows)
 
-	return File2Rows(csvpath, func(idx, cnt int, headers []string, items []interface{}) (bool, string, string) {
+	return File2Rows(csvpath, func(idx, cnt int, headers, items []string) (bool, string, string) {
 
 		// get [hdrRow], [cIndices] once
 		if hdrRow == "" {
-
 			// select needed columns
-			for i, header := range headers {
-				switch {
-				case fnCol(header, gHdrNames...):
-					cIndices = append(cIndices, i)
-				}
-			}
-
+			cIndices = tsi.FM(headers,
+				func(i int, e string) bool { return fnCol(e, hdrNames...) },
+				func(i int, e string) int { return i },
+			)
 			// filter columns headers
-			hdrLeft := []string{}
-			for i, header := range headers {
-				if exist(i, cIndices...) {
-					hdrLeft = append(hdrLeft, mkValid(header))
-				}
-			}
-
+			hdrLeft := ts.FM(headers,
+				func(i int, e string) bool { return ti.In(i, cIndices...) },
+				func(i int, e string) string { return mkValid(e) },
+			)
 			hdrRow = sJoin(hdrLeft, ",")
 		}
 
@@ -58,19 +76,18 @@ func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool,
 				ok = true
 			}
 		} else {
-			if fnRow(idx, gIRows...) {
+			if fnRow(idx, iRows...) {
 				ok = true
 			}
 		}
 
 		if ok {
 			// filter column items
-			itemLeft := []string{}
-			for i, item := range items {
-				if exist(i, cIndices...) {
-					itemLeft = append(itemLeft, mkValid(item.(string)))
-				}
-			}
+			itemLeft := ts.FM(items,
+				func(i int, e string) bool { return ti.In(i, cIndices...) },
+				func(i int, e string) string { return mkValid(e) },
+			)
+
 			return true, hdrRow, sJoin(itemLeft, ",")
 		}
 
@@ -87,12 +104,11 @@ func Select(csvpath string, R rune, CGrp []struct {
 	relation string
 }, outcsv string) (string, []string, error) {
 
-	failP1OnErrWhen(notexist(R, '&', '|'), "%v", fEf("R can only be [&, |]"))
+	failP1OnErrWhen(ti32.NotIn(R, '&', '|'), "%v", fEf("R can only be [&, |]"))
 	nCGrp := len(CGrp)
 
-	return File2Rows(csvpath, func(idx, cnt int, headers []string, items []interface{}) (bool, string, string) {
+	return File2Rows(csvpath, func(idx, cnt int, headers, items []string) (bool, string, string) {
 		CResults := []interface{}{}
-		gHeaders := toGSlc(headers)
 
 	NEXTCONDITION:
 		for _, C := range CGrp {
@@ -101,9 +117,8 @@ func Select(csvpath string, R rune, CGrp []struct {
 				break NEXTCONDITION
 			}
 
-			if I := idxOf(C.header, gHeaders...); I != -1 {
+			if I := ts.IdxOf(C.header, headers...); I != -1 {
 				iVal := items[I]
-				iValStr := iVal.(string)
 				cVal, cValType, cR := C.value, C.valtype, C.relation
 
 				if cR == "=" {
@@ -127,8 +142,8 @@ func Select(csvpath string, R rune, CGrp []struct {
 					} else if intVal, ok := cVal.(int); ok {
 						cValue = int64(intVal)
 					}
-					// cValue := int64(cVal.(int))
-					iValue, err := strconv.ParseInt(iValStr, 10, 64)
+
+					iValue, err := strconv.ParseInt(iVal, 10, 64)
 					failOnErr("%v", err)
 					if (cR == ">" && iValue > cValue) || (cR == ">=" && iValue >= cValue) || (cR == "<" && iValue < cValue) || (cR == "<=" && iValue <= cValue) {
 						CResults = append(CResults, struct{}{})
@@ -141,8 +156,8 @@ func Select(csvpath string, R rune, CGrp []struct {
 					} else if intVal, ok := cVal.(int); ok {
 						cValue = uint64(intVal)
 					}
-					// cValue := uint64(cVal.(int))
-					iValue, err := strconv.ParseUint(iValStr, 10, 64)
+
+					iValue, err := strconv.ParseUint(iVal, 10, 64)
 					failOnErr("%v", err)
 					if (cR == ">" && iValue > cValue) || (cR == ">=" && iValue >= cValue) || (cR == "<" && iValue < cValue) || (cR == "<=" && iValue <= cValue) {
 						CResults = append(CResults, struct{}{})
@@ -150,7 +165,7 @@ func Select(csvpath string, R rune, CGrp []struct {
 
 				case "float32", "float64", "float", "double":
 					cValue := cVal.(float64)
-					iValue, err := strconv.ParseFloat(iValStr, 64)
+					iValue, err := strconv.ParseFloat(iVal, 64)
 					failOnErr("%v", err)
 					if (cR == ">" && iValue > cValue) || (cR == ">=" && iValue >= cValue) || (cR == "<" && iValue < cValue) || (cR == "<=" && iValue <= cValue) {
 						CResults = append(CResults, struct{}{})
@@ -162,10 +177,7 @@ func Select(csvpath string, R rune, CGrp []struct {
 			}
 		}
 
-		hdrNames := append([]string{}, headers...)
-		for i, name := range hdrNames {
-			hdrNames[i] = mkValid(name)
-		}
+		hdrNames := ts.FM(headers, nil, func(i int, e string) string { return mkValid(e) })
 		hdrRow := sJoin(hdrNames, ",")
 
 		ok := false
@@ -182,11 +194,8 @@ func Select(csvpath string, R rune, CGrp []struct {
 
 		// No conditions OR condition ok
 		if ok || len(CGrp) == 0 {
-			itemValues := append([]interface{}{}, items...)
-			for i, value := range itemValues {
-				itemValues[i] = mkValid(value.(string))
-			}
-			return true, hdrRow, sJoin(toTSlc(itemValues).([]string), ",")
+			itemValues := ts.FM(items, nil, func(i int, e string) string { return mkValid(e) })
+			return true, hdrRow, sJoin(itemValues, ",")
 		}
 
 		return true, hdrRow, ""
