@@ -14,7 +14,7 @@ func fortest() {
 
 // Create : create csv file with input headers
 func Create(outcsv string, hdrNames ...string) (string, error) {
-	if len(hdrNames) == 0 {
+	if hdrNames == nil {
 		return "", fEf("No Headers Provided")
 	}
 

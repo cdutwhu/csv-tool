@@ -33,9 +33,21 @@ func TestCreate(t *testing.T) {
 		// TODO: Add test cases.
 		{
 			name:    "OK",
+			args:    args{outcsv: "./out/create1.csv", hdrNames: nil},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name:    "OK",
+			args:    args{outcsv: "./out/create1.csv", hdrNames: []string{}},
+			want:    "",
+			wantErr: false,
+		},
+		{
+			name:    "OK",
 			args:    args{outcsv: "./out/create1.csv", hdrNames: []string{"eee", ""}},
 			want:    "eee,",
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "OK",
