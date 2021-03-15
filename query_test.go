@@ -52,14 +52,9 @@ func TestSelect(t *testing.T) {
 		// }
 
 		fPln(fName)
-		Select(fName, '&', []struct {
-			header   string
-			value    interface{}
-			valtype  string
-			relation string
-		}{
-			{header: "School", value: "21221", valtype: "string", relation: "="},
-			{header: "Domain", value: "Reading", valtype: "string", relation: "="},
+		Select(fName, '&', []Condition{
+			{Hdr: "School", Val: "21221", ValTyp: "string", Rel: "="},
+			{Hdr: "Domain", Val: "Reading", ValTyp: "string", Rel: "="},
 		}, "out/"+file.Name())
 	}
 }
@@ -92,22 +87,17 @@ func TestQuery(t *testing.T) {
 			[]string{
 				"Domain",
 				"School",
-				"YrLevel",				
+				"YrLevel",
 				"Test Name",
 				"Test level",
 				"Test Domain",
 				"Test Item RefID",
 			},
 			'&',
-			[]struct {
-				header   string
-				value    interface{}
-				valtype  string
-				relation string
-			}{
-				{header: "School", value: "21221", valtype: "string", relation: "="},
-				{header: "YrLevel", value: 5, valtype: "uint", relation: ">"},
-				{header: "Domain", value: "Reading", valtype: "string", relation: "!="},
+			[]Condition{
+				{Hdr: "School", Val: "21221", ValTyp: "string", Rel: "="},
+				{Hdr: "YrLevel", Val: 5, ValTyp: "uint", Rel: ">"},
+				{Hdr: "Domain", Val: "Reading", ValTyp: "string", Rel: "!="},
 			},
 			"out/"+file.Name(),
 			wg)

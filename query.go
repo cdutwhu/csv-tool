@@ -108,13 +108,16 @@ func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool,
 	}, !incColMode, outcsv)
 }
 
+// Condition :
+type Condition struct {
+	Hdr    string
+	Val    interface{}
+	ValTyp string
+	Rel    string
+}
+
 // Select : R : [&, |]; condition relation : [=, !=, >, <, >=, <=]
-func Select(csvpath string, R rune, CGrp []struct {
-	header   string
-	value    interface{}
-	valtype  string
-	relation string
-}, outcsv string) (string, []string, error) {
+func Select(csvpath string, R rune, CGrp []Condition, outcsv string) (string, []string, error) {
 
 	failP1OnErrWhen(ti32.NotIn(R, '&', '|'), "%v", fEf("R can only be [&, |]"))
 	nCGrp := len(CGrp)
@@ -129,62 +132,70 @@ func Select(csvpath string, R rune, CGrp []struct {
 				break NEXTCONDITION
 			}
 
-			if I := ts.IdxOf(C.header, headers...); I != -1 {
+			if I := ts.IdxOf(C.Hdr, headers...); I != -1 {
 				iVal := items[I]
-				cVal, cValType, cR := C.value, C.valtype, C.relation
 
-				if cR == "=" {
-					if iVal == cVal {
+				if C.Rel == "=" {
+					if iVal == C.Val {
 						CResults = append(CResults, struct{}{})
 					}
 					continue NEXTCONDITION
 				}
-				if cR == "!=" {
-					if iVal != cVal {
+				if C.Rel == "!=" {
+					if iVal != C.Val {
 						CResults = append(CResults, struct{}{})
 					}
 					continue NEXTCONDITION
 				}
 
-				switch cValType {
+				switch C.ValTyp {
 				case "int", "int8", "int16", "int32", "int64":
 					var cValue int64
-					if i64Val, ok := cVal.(int64); ok {
+					if i64Val, ok := C.Val.(int64); ok {
 						cValue = i64Val
-					} else if intVal, ok := cVal.(int); ok {
+					} else if intVal, ok := C.Val.(int); ok {
 						cValue = int64(intVal)
 					}
 
 					iValue, err := strconv.ParseInt(iVal, 10, 64)
 					failOnErr("%v", err)
-					if (cR == ">" && iValue > cValue) || (cR == ">=" && iValue >= cValue) || (cR == "<" && iValue < cValue) || (cR == "<=" && iValue <= cValue) {
+					if (C.Rel == ">" && iValue > cValue) ||
+						(C.Rel == ">=" && iValue >= cValue) ||
+						(C.Rel == "<" && iValue < cValue) ||
+						(C.Rel == "<=" && iValue <= cValue) {
 						CResults = append(CResults, struct{}{})
 					}
 
 				case "uint", "uint8", "uint16", "uint32", "uint64":
 					var cValue uint64
-					if i64Val, ok := cVal.(int64); ok {
+					if i64Val, ok := C.Val.(int64); ok {
 						cValue = uint64(i64Val)
-					} else if intVal, ok := cVal.(int); ok {
+					} else if intVal, ok := C.Val.(int); ok {
 						cValue = uint64(intVal)
 					}
 
 					iValue, err := strconv.ParseUint(iVal, 10, 64)
 					failOnErr("%v", err)
-					if (cR == ">" && iValue > cValue) || (cR == ">=" && iValue >= cValue) || (cR == "<" && iValue < cValue) || (cR == "<=" && iValue <= cValue) {
+					if (C.Rel == ">" && iValue > cValue) ||
+						(C.Rel == ">=" && iValue >= cValue) ||
+						(C.Rel == "<" && iValue < cValue) ||
+						(C.Rel == "<=" && iValue <= cValue) {
 						CResults = append(CResults, struct{}{})
 					}
 
 				case "float32", "float64", "float", "double":
-					cValue := cVal.(float64)
+					cValue := C.Val.(float64)
 					iValue, err := strconv.ParseFloat(iVal, 64)
 					failOnErr("%v", err)
-					if (cR == ">" && iValue > cValue) || (cR == ">=" && iValue >= cValue) || (cR == "<" && iValue < cValue) || (cR == "<=" && iValue <= cValue) {
+					if (C.Rel == ">" && iValue > cValue) ||
+						(C.Rel == ">=" && iValue >= cValue) ||
+						(C.Rel == "<" && iValue < cValue) ||
+						(C.Rel == "<=" && iValue <= cValue) {
 						CResults = append(CResults, struct{}{})
 					}
 
 				default:
-					panic("comparable type [" + cValType + "] is not supported")
+					panic("comparable type [" + C.ValTyp + "] is not supported")
 				}
 			}
 		}
@@ -216,12 +227,7 @@ func Select(csvpath string, R rune, CGrp []struct {
 }
 
 // Query : combine Subset(incColMode, all rows) & Select
-func Query(csvpath string, incColMode bool, hdrNames []string, R rune, CGrp []struct {
-	header   string
-	value    interface{}
-	valtype  string
-	relation string
-}, outcsv string, wg *sync.WaitGroup) (string, []string, error) {
+func Query(csvpath string, incColMode bool, hdrNames []string, R rune, CGrp []Condition, outcsv string, wg *sync.WaitGroup) (string, []string, error) {
 
 	filename := sTrimSuffix(filepath.Base(csvpath), ".csv")
 	tempcsv := "./tempcsv/" + filename + "@" + uuid.NewString() + ".csv"
@@ -254,20 +260,10 @@ func QueryAtConfig(tomlPath string) (int, error) {
 
 	for _, qry := range config.Query {
 
-		cond := []struct {
-			header   string
-			value    interface{}
-			valtype  string
-			relation string
-		}{}
+		cond := []Condition{}
 
 		for _, c := range qry.Cond {
-			cond = append(cond, struct {
-				header   string
-				value    interface{}
-				valtype  string
-				relation string
-			}{header: c.Header, value: c.Value, valtype: c.ValueType, relation: c.RelaOfItemValue})
+			cond = append(cond, Condition{Hdr: c.Header, Val: c.Value, ValTyp: c.ValueType, Rel: c.RelaOfItemValue})
 		}
 
 		fPln("Processing ... " + qry.Name)
