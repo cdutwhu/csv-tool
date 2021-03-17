@@ -1,5 +1,5 @@
 #!/bin/bash
 
-rm -f ./data/*.json ./data1/*.json ./out/*.csv ./out1/*.csv 
+rm -rf ./data/*.json ./data1/*.json ./out/* ./out1/* 
 rm -f *.log err*.json *@*.csv
 rm -rf ./tempcsv
