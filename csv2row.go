@@ -8,7 +8,8 @@ import (
 
 func mkValid(item string) string {
 	if len(item) > 1 {
-		if hasComma, hasQuote := sContains(item, ","), sContains(item[1:len(item)-1], "\""); hasComma || hasQuote {
+		hasComma, hasQuote, hasLF := sContains(item, ","), sContains(item[1:len(item)-1], "\""), sContains(item, "\n")
+		if hasComma || hasQuote || hasLF {
 			if hasQuote {
 				item = sReplaceAll(item, "\"", "\"\"")
 			}
@@ -40,7 +41,11 @@ func FileInfo(csvpath string) ([]string, int, error) {
 // ReaderByRow :
 func ReaderByRow(r io.Reader, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), oriHdrIfNoRows bool, outcsv string) (string, []string, error) {
 	content, err := csv.NewReader(r).ReadAll()
-	failOnErr("%v", err)
+	// failOnErr("%v", err)
+	if err != nil {
+		return "", nil, err
+	}
+
 	if len(content) < 1 {
 		return "", []string{}, fEf("FILE_EMPTY")
 	}
@@ -99,5 +104,6 @@ func File2Rows(csvpath string, f func(i, n int, headers, items []string) (ok boo
 	failP1OnErr("The file is not found || wrong root : %v", err)
 	defer csvFile.Close()
 	hRow, rows, err := ReaderByRow(csvFile, f, oriHdrIfNoRows, outcsv)
+	failOnErrWhen(rows == nil, "%v @ %s", err, csvpath) // go internal csv func error
 	return hRow, rows, err
 }

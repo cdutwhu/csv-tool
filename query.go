@@ -238,6 +238,7 @@ func Query(csvpath string, incColMode bool, hdrNames []string, R rune, CGrp []Co
 		}
 	}()
 
+	// fPf("---querying...<%s>\n", csvpath)
 	_, _, err := Select(csvpath, R, CGrp, tempcsv)
 	time.Sleep(5 * time.Millisecond)
 	if err == nil {
