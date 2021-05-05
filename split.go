@@ -1,6 +1,7 @@
 package csvtool
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -8,16 +9,22 @@ import (
 	"github.com/digisan/gotk/slice/ts"
 )
 
-// Split :
-func Split(csvfile, outdir string, keepcat bool, categories ...string) error {
+var (
+	outfiles = []string{}
+)
 
+// Split :
+func Split(csvfile, outdir string, keepcat bool, categories ...string) ([]string, error) {
+
+	outfiles = []string{}
 	basename := filepath.Base(csvfile)
 	if outdir == "" {
 		outdir = "./" + sTrimSuffix(basename, ".csv") + "/"
 	} else {
 		outdir = sTrimSuffix(outdir, "/") + "/"
 	}
-	return split(0, csvfile, outdir, basename, keepcat, categories)
+	err := split(0, csvfile, outdir, basename, keepcat, categories)
+	return outfiles, err
 
 }
 
@@ -28,7 +35,12 @@ func split(rl int, csvfile, outdir, basename string, keepcat bool, categories []
 
 	defer func() {
 		if rl > 1 && rl <= len(categories) {
-			os.RemoveAll(csvfile)
+			if err := os.RemoveAll(csvfile); err != nil {
+				log.Fatalf("%v", err)
+			}
+			outfiles = ts.FM(outfiles, func(i int, e string) bool {
+				return e != csvfile
+			}, nil)
 		}
 	}()
 
@@ -61,6 +73,9 @@ func split(rl int, csvfile, outdir, basename string, keepcat bool, categories []
 			}
 			outcsv += catItem + "/" + basename
 			// fmt.Println(outcsv)
+
+			// record 'outcsv'
+			outfiles = append(outfiles, outcsv)
 
 			_, _, err := Query(csvfile,
 				false,

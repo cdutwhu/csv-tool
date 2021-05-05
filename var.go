@@ -14,7 +14,6 @@ import (
 
 var (
 	fPln        = fmt.Println
-	fPf         = fmt.Printf
 	fEf         = fmt.Errorf
 	fSf         = fmt.Sprintf
 	sReplaceAll = strings.ReplaceAll
@@ -22,10 +21,8 @@ var (
 	sHasSuffix  = strings.HasSuffix
 	sRepeat     = strings.Repeat
 	sContains   = strings.Contains
-	sSplit      = strings.Split
 	sJoin       = strings.Join
 	sTrimSuffix = strings.TrimSuffix
-	sTrim       = strings.Trim
 
 	failOnErr       = fn.FailOnErr
 	failP1OnErr     = fn.FailP1OnErr
