@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	mutex    = &sync.Mutex{}
 	outfiles = []string{}
 )
 
@@ -38,9 +39,11 @@ func split(rl int, csvfile, outdir, basename string, keepcat bool, categories []
 			if err := os.RemoveAll(csvfile); err != nil {
 				log.Fatalf("%v", err)
 			}
+			mutex.Lock()
 			outfiles = ts.FM(outfiles, func(i int, e string) bool {
 				return e != csvfile
 			}, nil)
+			mutex.Unlock()
 		}
 	}()
 
@@ -75,7 +78,9 @@ func split(rl int, csvfile, outdir, basename string, keepcat bool, categories []
 			// fmt.Println(outcsv)
 
 			// record 'outcsv'
+			mutex.Lock()
 			outfiles = append(outfiles, outcsv)
+			mutex.Unlock()
 
 			_, _, err := Query(csvfile,
 				false,
