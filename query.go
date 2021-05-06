@@ -119,6 +119,10 @@ type Condition struct {
 // Select : R : [&, |]; condition relation : [=, !=, >, <, >=, <=]
 func Select(csvpath string, R rune, CGrp []Condition, outcsv string) (string, []string, error) {
 
+	if !fileExists(csvpath) {
+		return "", []string{}, fEf("[%s] does NOT exist, ignore", csvpath)
+	}
+
 	failP1OnErrWhen(ti32.NotIn(R, '&', '|'), "%v", fEf("R can only be [&, |]"))
 	nCGrp := len(CGrp)
 

@@ -32,6 +32,7 @@ var (
 	enableLog2F     = fn.EnableLog2F
 	mustWriteFile   = io.MustWriteFile
 	mustAppendFile  = io.MustAppendFile
+	fileExists      = io.FileExists
 	iter2slc        = iter.Iter2Slc
 	isContInts      = judge.IsContInts
 	trackTime       = gotk.TrackTime
