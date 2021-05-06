@@ -38,7 +38,7 @@ func FileInfo(csvpath string) ([]string, int, error) {
 	return Info(csvFile)
 }
 
-// ReaderByRow :
+// ReaderByRow : if [f arg: i==-1], it is pure HeaderRow csv
 func ReaderByRow(r io.Reader, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), oriHdrIfNoRows bool, outcsv string) (string, []string, error) {
 	content, err := csv.NewReader(r).ReadAll()
 	// failOnErr("%v", err)
@@ -59,7 +59,12 @@ func ReaderByRow(r io.Reader, f func(i, n int, headers, items []string) (ok bool
 		headers = append(headers, mkValid(hdrItem))
 	}
 
-	// Remove The Header Row
+	hdrOnly := false
+	if len(content) == 1 {
+		hdrOnly = true
+	}
+
+	// Remove The Header Row --------------
 	content = content[1:]
 
 	// check
@@ -73,10 +78,21 @@ func ReaderByRow(r io.Reader, f func(i, n int, headers, items []string) (ok bool
 	// if no f provided, we select all rows //
 	if f == nil {
 		hdrRow = sJoin(headers, ",")
-		for _, d := range content {
-			allRows = append(allRows, sJoin(d, ","))
+		if hdrOnly {
+			allRows = []string{""} // hdrOnly, allRows all are empty
+		} else {
+			for _, d := range content {
+				allRows = append(allRows, sJoin(d, ","))
+			}
 		}
 		goto SAVE
+	}
+
+	if hdrOnly {
+		if ok, hRow, _ := f(-1, 1, headers, []string{}); ok {
+			hdrRow = hRow
+			allRows = []string{""} // hdrOnly, allRows all are empty
+		}
 	}
 
 	for i, d := range content {

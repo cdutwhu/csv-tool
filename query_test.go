@@ -6,6 +6,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/digisan/gotk/slice/ts"
 )
 
 func TestSubset(t *testing.T) {
@@ -69,17 +71,17 @@ func TestQuery(t *testing.T) {
 	failOnErr("%v", err)
 
 	wg := &sync.WaitGroup{}
-	wg.Add(len(files))
-	// wg.Add(1)
+	wg.Add(len(files) - 1)
 
 	for _, file := range files {
 		fName := dir + file.Name()
 		if !sHasSuffix(file.Name(), ".csv") {
 			continue
 		}
-		// if file.Name() != "data.csv" {
-		// 	continue
-		// }
+
+		if ts.In(file.Name(), "compareItemWriting1.csv") {
+			continue
+		}
 
 		fPln(fName)
 		go Query(fName,

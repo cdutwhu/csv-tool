@@ -123,6 +123,14 @@ func Select(csvpath string, R rune, CGrp []Condition, outcsv string) (string, []
 	nCGrp := len(CGrp)
 
 	return File2Rows(csvpath, func(idx, cnt int, headers, items []string) (bool, string, string) {
+
+		hdrNames := ts.FM(headers, nil, func(i int, e string) string { return mkValid(e) })
+		hdrRow := sJoin(hdrNames, ",")
+
+		if len(items) == 0 {
+			return true, hdrRow, ""
+		}
+
 		CResults := []interface{}{}
 
 	NEXTCONDITION:
@@ -158,7 +166,7 @@ func Select(csvpath string, R rune, CGrp []Condition, outcsv string) (string, []
 					}
 
 					iValue, err := strconv.ParseInt(iVal, 10, 64)
-					failOnErr("%v", err)
+					failOnErr("%s : %v", csvpath, err)
 					if (C.Rel == ">" && iValue > cValue) ||
 						(C.Rel == ">=" && iValue >= cValue) ||
 						(C.Rel == "<" && iValue < cValue) ||
@@ -175,7 +183,7 @@ func Select(csvpath string, R rune, CGrp []Condition, outcsv string) (string, []
 					}
 
 					iValue, err := strconv.ParseUint(iVal, 10, 64)
-					failOnErr("%v", err)
+					failOnErr("%s : %v", csvpath, err)
 					if (C.Rel == ">" && iValue > cValue) ||
 						(C.Rel == ">=" && iValue >= cValue) ||
 						(C.Rel == "<" && iValue < cValue) ||
@@ -186,7 +194,7 @@ func Select(csvpath string, R rune, CGrp []Condition, outcsv string) (string, []
 				case "float32", "float64", "float", "double":
 					cValue := C.Val.(float64)
 					iValue, err := strconv.ParseFloat(iVal, 64)
-					failOnErr("%v", err)
+					failOnErr("%s : %v", csvpath, err)
 					if (C.Rel == ">" && iValue > cValue) ||
 						(C.Rel == ">=" && iValue >= cValue) ||
 						(C.Rel == "<" && iValue < cValue) ||
@@ -199,9 +207,6 @@ func Select(csvpath string, R rune, CGrp []Condition, outcsv string) (string, []
 				}
 			}
 		}
-
-		hdrNames := ts.FM(headers, nil, func(i int, e string) string { return mkValid(e) })
-		hdrRow := sJoin(hdrNames, ",")
 
 		ok := false
 
