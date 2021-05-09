@@ -1,13 +1,15 @@
 package csvtool
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/digisan/gotk/slice/ts"
+	"github.com/digisan/gotk/io"
 )
 
 func TestSubset(t *testing.T) {
@@ -20,7 +22,7 @@ func TestSubset(t *testing.T) {
 	failOnErr("%v", err)
 
 	for _, file := range files {
-		fName := dir + file.Name()
+		fName := filepath.Join(dir, file.Name())
 		if !sHasSuffix(file.Name(), ".csv") {
 			continue
 		}
@@ -28,10 +30,27 @@ func TestSubset(t *testing.T) {
 		// 	continue
 		// }
 
-		fPln(fName)
-		_, n, _ := FileInfo(fName)
-		Subset(fName, false, []string{"Domain", "Item Response", "YrLevel", "School", "Age", "substrand_id"}, true, iter2slc(n-1, -1), "out/"+file.Name())
-		Subset(fName, true, []string{"School", "Domain", "YrLevel", "XXX", "Test Name", "Test level", "Test Domain", "Test Item RefID", "Item Response"}, true, iter2slc(0, 20000), "out1/"+file.Name())
+		func() {
+
+			fPln(fName)
+			_, n, _ := FileInfo(fName)
+
+			in, err := os.ReadFile(fName)
+			failOnErr("%v", err)
+
+			mustCreateDir("out/")
+			file4w, err := os.OpenFile("out/"+file.Name(), os.O_WRONLY|os.O_CREATE, 0644)
+			failOnErr("%v", err)
+			defer file4w.Close()
+			Subset(in, false, []string{"Domain", "Item Response", "YrLevel", "School", "Age", "substrand_id"}, true, iter2slc(n-1, -1), file4w)
+
+			mustCreateDir("out1/")
+			file4w1, err := os.OpenFile("out1/"+file.Name(), os.O_WRONLY|os.O_CREATE, 0644)
+			failOnErr("%v", err)
+			defer file4w1.Close()
+			Subset(in, true, []string{"School", "Domain", "YrLevel", "XXX", "Test Name", "Test level", "Test Domain", "Test Item RefID", "Item Response"}, true, iter2slc(0, 20000), file4w1)
+
+		}()
 	}
 }
 
@@ -45,19 +64,30 @@ func TestSelect(t *testing.T) {
 	failOnErr("%v", err)
 
 	for _, file := range files {
-		fName := dir + file.Name()
-		if !sHasSuffix(file.Name(), ".csv") {
+		fName := filepath.Join(dir, file.Name())
+		if !sHasSuffix(fName, ".csv") {
 			continue
 		}
-		// if file.Name() != "itemResults1.csv" {
-		// 	continue
-		// }
 
 		fPln(fName)
-		Select(fName, '&', []Condition{
-			{Hdr: "School", Val: "21221", ValTyp: "string", Rel: "="},
-			{Hdr: "Domain", Val: "Reading", ValTyp: "string", Rel: "="},
-		}, "out/"+file.Name())
+
+		func() {
+
+			in, err := os.ReadFile(fName)
+			failOnErr("%v", err)
+
+			mustWriteFile("out/"+file.Name(), []byte{})
+			file4w, err := os.OpenFile("out/"+file.Name(), os.O_WRONLY|os.O_CREATE, 0666)
+			failOnErr("%v", err)
+			defer file4w.Close()
+
+			Select(in, '&', []Condition{
+				{Hdr: "School", Val: "21221", ValTyp: "string", Rel: "="},
+				{Hdr: "Domain", Val: "Spelling", ValTyp: "string", Rel: "="},
+				{Hdr: "YrLevel", Val: 3, ValTyp: "int", Rel: "<="},
+			}, file4w)
+
+		}()
 	}
 }
 
@@ -66,46 +96,56 @@ func TestQuery(t *testing.T) {
 	defer trackTime(time.Now())
 	enableLog2F(true, "./TestQuery.log")
 
-	dir := "./data/"
+	dir := "./data/splittest/system_reports"
 	files, err := os.ReadDir(dir)
 	failOnErr("%v", err)
 
+	n := len(files)
+	fPln(n, "files")
+
 	wg := &sync.WaitGroup{}
-	wg.Add(len(files) - 1)
+	wg.Add(n)
 
 	for _, file := range files {
-		fName := dir + file.Name()
-		if !sHasSuffix(file.Name(), ".csv") {
-			continue
-		}
 
-		if ts.In(file.Name(), "compareItemWriting1.csv") {
-			continue
-		}
+		go func(filename string) {
+			defer wg.Done()
 
-		fPln(fName)
-		go Query(fName,
-			true,
-			[]string{
-				"Domain",
-				"School",
-				"YrLevel",
-				"Test Name",
-				"Test level",
-				"Test Domain",
-				"Test Item RefID",
-			},
-			'&',
-			[]Condition{
-				{Hdr: "School", Val: "21221", ValTyp: "string", Rel: "="},
-				{Hdr: "YrLevel", Val: 5, ValTyp: "uint", Rel: ">"},
-				{Hdr: "Domain", Val: "Reading", ValTyp: "string", Rel: "!="},
-			},
-			"out/"+file.Name(),
-			wg)
+			if !sHasSuffix(filename, ".csv") {
+				return
+			}
+
+			fName := filepath.Join(dir, filename)
+			fPln(fName)
+
+			QueryFile(
+				fName,
+				true,
+				[]string{
+					"Domain",
+					"School",
+					"YrLevel",
+					"Test Name",
+					"Test level",
+					"Test Domain",
+					"Test Item RefID",
+				},
+				'&',
+				[]Condition{
+					{Hdr: "School", Val: "21221", ValTyp: "string", Rel: "="},
+					{Hdr: "YrLevel", Val: 5, ValTyp: "uint", Rel: ">"},
+					{Hdr: "Domain", Val: "Reading", ValTyp: "string", Rel: "!="},
+				},
+				"out/"+filename,
+			)
+
+		}(file.Name())
 	}
 
 	wg.Wait()
+
+	fmt.Println(io.FileDirCount(dir, true))
+	fmt.Println(io.FileDirCount("out/", true))
 }
 
 func TestQueryAtConfig(t *testing.T) {

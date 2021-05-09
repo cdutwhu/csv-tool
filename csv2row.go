@@ -1,9 +1,11 @@
 package csvtool
 
 import (
+	"bytes"
 	"encoding/csv"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 func mkValid(item string) string {
@@ -22,7 +24,7 @@ func mkValid(item string) string {
 }
 
 // Info : headers, nItem, error
-func Info(r io.Reader) ([]string, int, error) {
+func Info(r io.ReadSeeker) ([]string, int, error) {
 	content, err := csv.NewReader(r).ReadAll()
 	if err != nil {
 		return nil, -1, err
@@ -38,8 +40,14 @@ func FileInfo(csvpath string) ([]string, int, error) {
 	return Info(csvFile)
 }
 
-// ReaderByRow : if [f arg: i==-1], it is pure HeaderRow csv
-func ReaderByRow(r io.Reader, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), oriHdrIfNoRows bool, outcsv string) (string, []string, error) {
+// ScanByRow : if [f arg: i==-1], it is pure HeaderRow csv
+func ScanByRow(in []byte, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), oriHdrIfNoRows bool, w io.Writer) (string, []string, error) {
+	return csvReader(bytes.NewReader(in), f, oriHdrIfNoRows, w)
+}
+
+// csvReader : if [f arg: i==-1], it is pure HeaderRow csv
+func csvReader(r io.ReadSeeker, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), oriHdrIfNoRows bool, w io.Writer) (string, []string, error) {
+
 	content, err := csv.NewReader(r).ReadAll()
 	// failOnErr("%v", err)
 	if err != nil {
@@ -106,9 +114,10 @@ func ReaderByRow(r io.Reader, f func(i, n int, headers, items []string) (ok bool
 
 SAVE:
 	// save
-	if outcsv != "" {
-		outcsv = sTrimSuffix(outcsv, ".csv") + ".csv"
-		mustWriteFile(outcsv, []byte(sTrimSuffix(hdrRow+"\n"+sJoin(allRows, "\n"), "\n")))
+	if w != nil {
+		csvbytes := []byte(sTrimSuffix(hdrRow+"\n"+sJoin(allRows, "\n"), "\n"))
+		_, err = w.Write(csvbytes)
+		failP1OnErr("%v", err)
 	}
 
 	return hdrRow, allRows, nil
@@ -116,10 +125,18 @@ SAVE:
 
 // File2Rows :
 func File2Rows(csvpath string, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), oriHdrIfNoRows bool, outcsv string) (string, []string, error) {
-	csvFile, err := os.Open(csvpath)
-	failP1OnErr("The file is not found || wrong root : %v", err)
-	defer csvFile.Close()
-	hRow, rows, err := ReaderByRow(csvFile, f, oriHdrIfNoRows, outcsv)
+
+	fr, err := os.Open(csvpath)
+	failP1OnErr("csvpath: he file is not found || wrong root : %v", err)
+	defer fr.Close()
+
+	mustCreateDir(filepath.Dir(outcsv))
+	fw, err := os.OpenFile(outcsv, os.O_WRONLY|os.O_CREATE, 0666)
+	failP1OnErr("outcsv: The file is not found || wrong root : %v", err)
+	defer fw.Close()
+
+	hRow, rows, err := csvReader(fr, f, oriHdrIfNoRows, fw)
 	failOnErrWhen(rows == nil, "%v @ %s", err, csvpath) // go internal csv func error
 	return hRow, rows, err
+
 }

@@ -1,53 +1,93 @@
 package csvtool
 
 import (
-	"log"
+	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
 
+	gotkio "github.com/digisan/gotk/io"
 	"github.com/digisan/gotk/slice/ts"
 )
 
 var (
-	mutex    = &sync.Mutex{}
-	outfiles = []string{}
+	mtx        = &sync.Mutex{}
+	schema     []string
+	nSchema    int
+	outfiles   []string
+	parallel   = false
+	noParallel = false
+	notsplit   = "./notsplit/"
 )
+
+// NotSplittableDir :
+func NotSplittableDir(dir string) {
+	notsplit, _ = gotkio.AbsPath(dir, false)
+	mustCreateDir(notsplit)
+}
+
+// ForceNoParallel :
+func ForceSingleProc(sp bool) {
+	noParallel = sp
+}
 
 // Split :
 func Split(csvfile, outdir string, keepcat bool, categories ...string) ([]string, error) {
 
-	outfiles = []string{}
+	schema = categories
+	nSchema = len(schema)
+
 	basename := filepath.Base(csvfile)
 	if outdir == "" {
 		outdir = "./" + sTrimSuffix(basename, ".csv") + "/"
 	} else {
 		outdir = sTrimSuffix(outdir, "/") + "/"
 	}
-	err := split(0, csvfile, outdir, basename, keepcat, categories)
-	return outfiles, err
 
+	in, err := os.ReadFile(csvfile)
+	if err != nil {
+		return nil, err
+	}
+
+	// --------------- not splittable --------------- //
+	// empty file / empty content csv / no categories csv
+	_, rows, err := Subset(in, true, categories, false, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 || (len(rows) > 0 && sTrim(rows[0], " \t") == "") {
+		csvfile = filepath.Join(notsplit, filepath.Base(csvfile))
+		mustWriteFile(csvfile, in)
+		return []string{csvfile}, nil
+	}
+
+	// --------------- parallel set --------------- //
+	parallel = false
+	if !noParallel && len(in) < 1024*1024*10 {
+		parallel = true
+	}
+	// fmt.Printf("%s running on parallel? %v\n", csvfile, parallel)
+
+	// split, if no suitable position to put it in, throw it to <notsplit>
+	outfiles = []string{}
+	err = split(0, in, outdir, basename, keepcat)
+	if len(outfiles) == 0 {
+		csvfile = filepath.Join(notsplit, filepath.Base(csvfile))
+		mustWriteFile(csvfile, in)
+		return []string{csvfile}, nil
+	}
+
+	return outfiles, err
 }
 
-func split(rl int, csvfile, outdir, basename string, keepcat bool, categories []string, pCatItems ...string) error {
-	if rl >= len(categories) {
+func split(rl int, in []byte, outdir, basename string, keepcat bool, pCatItems ...string) error {
+
+	if rl >= nSchema {
 		return nil
 	}
 
-	defer func() {
-		if rl > 1 && rl <= len(categories) {
-			if err := os.RemoveAll(csvfile); err != nil {
-				log.Fatalf("%v", err)
-			}
-			mutex.Lock()
-			outfiles = ts.FM(outfiles, func(i int, e string) bool {
-				return e != csvfile
-			}, nil)
-			mutex.Unlock()
-		}
-	}()
-
-	cat := categories[rl]
+	cat := schema[rl]
 	rl++
 
 	rmHdrGrp := []string{cat}
@@ -55,51 +95,88 @@ func split(rl int, csvfile, outdir, basename string, keepcat bool, categories []
 		rmHdrGrp = nil
 	}
 
-	_, rows, err := Subset(csvfile, true, []string{cat}, false, nil, "")
+	_, rows, err := Subset(in, true, []string{cat}, false, nil, nil)
 	if err != nil {
 		return err
 	}
 
 	unirows := ts.MkSet(rows...)
 
-	wg := &sync.WaitGroup{}
-	wg.Add(len(unirows))
+	// Safe Mode, But Slow //
+	if !parallel {
 
-	for _, catItem := range unirows {
-
-		go func(wg *sync.WaitGroup, catItem string) {
-			defer wg.Done()
+		for _, catItem := range unirows {
 
 			outcsv := outdir
 			for _, pcItem := range pCatItems {
 				outcsv += pcItem + "/"
 			}
 			outcsv += catItem + "/" + basename
-			// fmt.Println(outcsv)
 
-			// record 'outcsv'
-			mutex.Lock()
-			outfiles = append(outfiles, outcsv)
-			mutex.Unlock()
+			wBuf := &bytes.Buffer{}
 
-			_, _, err := Query(csvfile,
+			Query(
+				in,
 				false,
 				rmHdrGrp,
 				'&',
 				[]Condition{{Hdr: cat, Val: catItem, ValTyp: "string", Rel: "="}},
-				outcsv,
-				nil,
+				io.Writer(wBuf),
 			)
-			if err != nil {
-				panic(err)
+
+			if rl == nSchema {
+				mustWriteFile(outcsv, wBuf.Bytes())
+				outfiles = append(outfiles, outcsv)
 			}
 
-			split(rl, outcsv, outdir, basename, keepcat, categories, append(pCatItems, catItem)...)
+			split(rl, wBuf.Bytes(), outdir, basename, keepcat, append(pCatItems, catItem)...)
+		}
 
-		}(wg, catItem)
 	}
 
-	wg.Wait()
+	// Whole Linux Exhausted When Running On Big Data //
+	if parallel {
+
+		wg := &sync.WaitGroup{}
+		wg.Add(len(unirows))
+
+		for _, catItem := range unirows {
+
+			go func(catItem string) {
+				defer wg.Done()
+
+				outcsv := outdir
+				for _, pcItem := range pCatItems {
+					outcsv += pcItem + "/"
+				}
+				outcsv += catItem + "/" + basename
+
+				wBuf := &bytes.Buffer{}
+
+				Query(
+					in,
+					false,
+					rmHdrGrp,
+					'&',
+					[]Condition{{Hdr: cat, Val: catItem, ValTyp: "string", Rel: "="}},
+					io.Writer(wBuf),
+				)
+
+				if rl == nSchema {
+					mtx.Lock()
+					mustWriteFile(outcsv, wBuf.Bytes())
+					outfiles = append(outfiles, outcsv)
+					mtx.Unlock()
+				}
+
+				split(rl, wBuf.Bytes(), outdir, basename, keepcat, append(pCatItems, catItem)...)
+
+			}(catItem)
+		}
+
+		wg.Wait()
+
+	}
 
 	return nil
 }

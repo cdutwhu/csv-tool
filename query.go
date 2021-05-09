@@ -1,11 +1,11 @@
 package csvtool
 
 import (
+	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
-	"sync"
-	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/cdutwhu/csv-tool/queryconfig"
@@ -13,7 +13,6 @@ import (
 	"github.com/digisan/gotk/slice/ti32"
 	"github.com/digisan/gotk/slice/ts"
 	"github.com/digisan/gotk/slice/tsi"
-	"github.com/google/uuid"
 )
 
 // Unique : remove repeated items
@@ -40,7 +39,7 @@ func Unique(csvpath, outcsv string) (string, []string, error) {
 }
 
 // Subset : content iRow start from 0. i.e. 1st content row index is 0
-func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool, iRows []int, outcsv string) (string, []string, error) {
+func Subset(in []byte, incColMode bool, hdrNames []string, incRowMode bool, iRows []int, w io.Writer) (string, []string, error) {
 
 	fnRow := ti.NotIn
 	if incRowMode {
@@ -50,7 +49,7 @@ func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool,
 	cIndices, hdrRow := []int{}, ""
 	fast, min, max := isContInts(iRows)
 
-	return File2Rows(csvpath, func(idx, cnt int, headers, items []string) (bool, string, string) {
+	return ScanByRow(in, func(idx, cnt int, headers, items []string) (bool, string, string) {
 
 		// get [hdrRow], [cIndices] once
 		if hdrRow == "" {
@@ -105,7 +104,7 @@ func Subset(csvpath string, incColMode bool, hdrNames []string, incRowMode bool,
 
 		return true, hdrRow, "" // still "ok" as hdrRow is needed even if empty content
 
-	}, !incColMode, outcsv)
+	}, !incColMode, w)
 }
 
 // Condition :
@@ -117,16 +116,13 @@ type Condition struct {
 }
 
 // Select : R : [&, |]; condition relation : [=, !=, >, <, >=, <=]
-func Select(csvpath string, R rune, CGrp []Condition, outcsv string) (string, []string, error) {
-
-	if !fileExists(csvpath) {
-		return "", []string{}, fEf("[%s] does NOT exist, ignore", csvpath)
-	}
+// [=, !=] only apply to string comparasion, [>, <, >=, <=] apply to number comparasion
+func Select(in []byte, R rune, CGrp []Condition, w io.Writer) (string, []string, error) {
 
 	failP1OnErrWhen(ti32.NotIn(R, '&', '|'), "%v", fEf("R can only be [&, |]"))
 	nCGrp := len(CGrp)
 
-	return File2Rows(csvpath, func(idx, cnt int, headers, items []string) (bool, string, string) {
+	return ScanByRow(in, func(idx, cnt int, headers, items []string) (bool, string, string) {
 
 		hdrNames := ts.FM(headers, nil, func(i int, e string) string { return mkValid(e) })
 		hdrRow := sJoin(hdrNames, ",")
@@ -170,7 +166,9 @@ func Select(csvpath string, R rune, CGrp []Condition, outcsv string) (string, []
 					}
 
 					iValue, err := strconv.ParseInt(iVal, 10, 64)
-					failOnErr("%s : %v", csvpath, err)
+					if err != nil {
+						break
+					}
 					if (C.Rel == ">" && iValue > cValue) ||
 						(C.Rel == ">=" && iValue >= cValue) ||
 						(C.Rel == "<" && iValue < cValue) ||
@@ -187,7 +185,9 @@ func Select(csvpath string, R rune, CGrp []Condition, outcsv string) (string, []
 					}
 
 					iValue, err := strconv.ParseUint(iVal, 10, 64)
-					failOnErr("%s : %v", csvpath, err)
+					if err != nil {
+						break
+					}
 					if (C.Rel == ">" && iValue > cValue) ||
 						(C.Rel == ">=" && iValue >= cValue) ||
 						(C.Rel == "<" && iValue < cValue) ||
@@ -198,7 +198,9 @@ func Select(csvpath string, R rune, CGrp []Condition, outcsv string) (string, []
 				case "float32", "float64", "float", "double":
 					cValue := C.Val.(float64)
 					iValue, err := strconv.ParseFloat(iVal, 64)
-					failOnErr("%s : %v", csvpath, err)
+					if err != nil {
+						break
+					}
 					if (C.Rel == ">" && iValue > cValue) ||
 						(C.Rel == ">=" && iValue >= cValue) ||
 						(C.Rel == "<" && iValue < cValue) ||
@@ -232,28 +234,41 @@ func Select(csvpath string, R rune, CGrp []Condition, outcsv string) (string, []
 
 		return true, hdrRow, ""
 
-	}, true, outcsv)
+	}, true, w)
 }
 
 // Query : combine Subset(incColMode, all rows) & Select
-func Query(csvpath string, incColMode bool, hdrNames []string, R rune, CGrp []Condition, outcsv string, wg *sync.WaitGroup) (string, []string, error) {
+func Query(in []byte, incColMode bool, hdrNames []string, R rune, CGrp []Condition, w io.Writer) (string, []string, error) {
 
-	filename := sTrimSuffix(filepath.Base(csvpath), ".csv")
-	tempcsv := "./tempcsv/" + filename + "@" + uuid.NewString() + ".csv"
-	defer func() {
-		os.Remove(tempcsv)
-		if wg != nil {
-			wg.Done()
-		}
-	}()
-
-	// fPf("---querying...<%s>\n", csvpath)
-	_, _, err := Select(csvpath, R, CGrp, tempcsv)
-	time.Sleep(5 * time.Millisecond)
+	b := &bytes.Buffer{}
+	_, _, err := Select(in, R, CGrp, io.Writer(b))
 	if err == nil {
-		return Subset(tempcsv, incColMode, hdrNames, false, []int{}, outcsv)
+		return Subset(b.Bytes(), incColMode, hdrNames, false, []int{}, w)
 	}
 	return "", nil, err
+
+}
+
+func QueryFile(csvpath string, incColMode bool, hdrNames []string, R rune, CGrp []Condition, outcsv string) error {
+
+	// fPf("---querying...<%s>\n", csvpath)
+
+	if !fileExists(csvpath) {
+		return fEf("[%s] does NOT exist, ignore", csvpath)
+	}
+
+	in, err := os.ReadFile(csvpath)
+	failP1OnErr("%v", err)
+
+	mustCreateDir(filepath.Dir(outcsv))
+
+	fw, err := os.OpenFile(outcsv, os.O_WRONLY|os.O_CREATE, 0666)
+	failP1OnErr("%v", err)
+	defer fw.Close()
+
+	_, _, err = Query(in, incColMode, hdrNames, R, CGrp, fw)
+	return err
+
 }
 
 // QueryAtConfig :
@@ -265,9 +280,6 @@ func QueryAtConfig(tomlPath string) (int, error) {
 	}
 	// failOnErr("%v", err)
 
-	wg := &sync.WaitGroup{}
-	wg.Add(len(config.Query))
-
 	for _, qry := range config.Query {
 
 		cond := []Condition{}
@@ -278,17 +290,15 @@ func QueryAtConfig(tomlPath string) (int, error) {
 
 		fPln("Processing ... " + qry.Name)
 
-		go Query(qry.CsvPath,
+		QueryFile(
+			qry.CsvPath,
 			qry.IncColMode,
 			qry.HdrNames,
 			rune(qry.RelaOfCond[0]),
 			cond,
 			qry.OutCsvPath,
-			wg,
 		)
 	}
-
-	wg.Wait()
 
 	return len(config.Query), nil
 }

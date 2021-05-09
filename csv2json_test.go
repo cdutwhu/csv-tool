@@ -2,6 +2,7 @@ package csvtool
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -17,13 +18,10 @@ func TestCSV2JSON(t *testing.T) {
 	failOnErr("%v", err)
 
 	for _, file := range files {
-		fName := dir + file.Name()
+		fName := filepath.Join(dir, file.Name())
 		if !sHasSuffix(file.Name(), ".csv") {
 			continue
 		}
-		// if file.Name() != "data.csv" {
-		// 	continue
-		// }
 
 		fPln(fName)
 		File2JSON(fName, false, true, sReplaceAll(fName, ".csv", ".json"))

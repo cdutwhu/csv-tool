@@ -2,6 +2,7 @@ package csvtool
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -13,7 +14,7 @@ func TestCSV2ROW(t *testing.T) {
 	failOnErr("%v", err)
 
 	for _, file := range files {
-		fName := dir + file.Name()
+		fName := filepath.Join(dir, file.Name())
 		if !sHasSuffix(file.Name(), ".csv") {
 			continue
 		}

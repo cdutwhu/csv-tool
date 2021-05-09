@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/cdutwhu/debog/fn"
-	"github.com/cdutwhu/gotil/judge"
 	jsontool "github.com/cdutwhu/json-tool"
 	"github.com/digisan/gotk"
 	"github.com/digisan/gotk/io"
@@ -23,6 +22,7 @@ var (
 	sContains   = strings.Contains
 	sJoin       = strings.Join
 	sTrimSuffix = strings.TrimSuffix
+	sTrim       = strings.Trim
 
 	failOnErr       = fn.FailOnErr
 	failP1OnErr     = fn.FailP1OnErr
@@ -32,9 +32,10 @@ var (
 	enableLog2F     = fn.EnableLog2F
 	mustWriteFile   = io.MustWriteFile
 	mustAppendFile  = io.MustAppendFile
+	mustCreateDir   = io.MustCreateDir
 	fileExists      = io.FileExists
 	iter2slc        = iter.Iter2Slc
-	isContInts      = judge.IsContInts
+	isContInts      = gotk.IsContInts
 	trackTime       = gotk.TrackTime
 	isValidJSON     = jsontool.IsValid
 	jsonScalarSelX  = jsontool.ScalarSelX

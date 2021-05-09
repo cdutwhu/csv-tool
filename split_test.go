@@ -1,35 +1,11 @@
 package csvtool
 
 import (
-	"reflect"
+	"fmt"
 	"testing"
-)
 
-func Test_split(t *testing.T) {
-	type args struct {
-		rl         int
-		csvfile    string
-		outdir     string
-		basename   string
-		keepcat    bool
-		categories []string
-		pCatItems  []string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := split(tt.args.rl, tt.args.csvfile, tt.args.outdir, tt.args.basename, tt.args.keepcat, tt.args.categories, tt.args.pCatItems...); (err != nil) != tt.wantErr {
-				t.Errorf("split() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
+	"github.com/digisan/gotk/io"
+)
 
 func TestSplit(t *testing.T) {
 	type args struct {
@@ -48,34 +24,59 @@ func TestSplit(t *testing.T) {
 		{
 			name: "OK",
 			args: args{
-				csvfile:    "./data/itemResults.csv",
+				csvfile:    "./data/splittest/system_reports/systemPNPEvents.csv",
 				outdir:     "out",
-				keepcat:    true,
-				categories: []string{"School", "Domain", "YrLevel"},
+				keepcat:    false,
+				categories: []string{"School", "YrLevel", "Domain"},
 			},
+			want:    []string{},
 			wantErr: false,
 		},
 		{
 			name: "OK",
 			args: args{
-				csvfile:    "./data/itemResults1.csv",
-				outdir:     "out1",
+				csvfile:    "./data/itemResults0.csv",
+				outdir:     "outmedium",
 				keepcat:    false,
-				categories: []string{"School", "Domain"},
+				categories: []string{"School", "Domain", "YrLevel"},
 			},
+			want:    []string{},
+			wantErr: false,
+		},
+		{
+			name: "OK",
+			args: args{
+				csvfile:    "./data/data.csv",
+				outdir:     "outmedium",
+				keepcat:    false,
+				categories: []string{"School", "Domain", "YrLevel"},
+			},
+			want:    []string{},
+			wantErr: false,
+		},
+		{
+			name: "OK",
+			args: args{
+				csvfile:    "./data/big/itemResults.csv",
+				outdir:     "outbig",
+				keepcat:    false,
+				categories: []string{"School", "Domain", "YrLevel"},
+			},
+			want:    []string{},
 			wantErr: false,
 		},
 	}
+
+	ForceSingleProc(true)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Split(tt.args.csvfile, tt.args.outdir, tt.args.keepcat, tt.args.categories...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Split() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Split() = %v, want %v", got, tt.want)
-			}
+			outfiles, _ := Split(tt.args.csvfile, tt.args.outdir, tt.args.keepcat, tt.args.categories...)
+			fmt.Println(len(outfiles))
 		})
 	}
+
+	fmt.Println(io.FileDirCount("out", true))
+	fmt.Println(io.FileDirCount("outmedium", true))
+	fmt.Println(io.FileDirCount("outbig", true))
 }

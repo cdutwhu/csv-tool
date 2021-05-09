@@ -16,5 +16,6 @@
 
 *.log
 data/*.json
-data1/
-out/
+data/big/
+data/splittest/
+out*/

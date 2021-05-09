@@ -11,12 +11,14 @@ import (
 )
 
 // File2JSON : read the content of CSV File
-func File2JSON(path string, vertical, save bool, savePaths ...string) (string, []string) {
-	csvFile, err := os.Open(path)
+func File2JSON(csvpath string, vertical, save bool, savePaths ...string) (string, []string) {
+
+	csvFile, err := os.Open(csvpath)
 	failOnErr("The file is not found || wrong root : %v", err)
 	defer csvFile.Close()
-	jsonstr, headers, err := Reader2JSON(csvFile, path)
-	failOnErr("%v", err)
+
+	jsonstr, headers, err := Reader2JSON(csvFile, csvpath)
+	failOnErr("%v @ %s", err, csvpath)
 
 	if vertical {
 		jsonstr = jsonScalarSelX(jsonstr, headers...)
@@ -24,9 +26,9 @@ func File2JSON(path string, vertical, save bool, savePaths ...string) (string, [
 
 	if save {
 		if len(savePaths) == 0 {
-			newFileName := filepath.Base(path)
+			newFileName := filepath.Base(csvpath)
 			newFileName = newFileName[0:len(newFileName)-len(filepath.Ext(newFileName))] + ".json"
-			savepath := filepath.Join(filepath.Dir(path), newFileName)
+			savepath := filepath.Join(filepath.Dir(csvpath), newFileName)
 			mustWriteFile(savepath, []byte(jsonstr))
 		}
 		for _, savepath := range savePaths {
@@ -38,6 +40,7 @@ func File2JSON(path string, vertical, save bool, savePaths ...string) (string, [
 
 // Reader2JSON to
 func Reader2JSON(r io.Reader, description string) (string, []string, error) {
+
 	content, _ := csv.NewReader(r).ReadAll()
 	if len(content) < 1 {
 		return "", nil, fEf("FILE_EMPTY")
@@ -101,6 +104,7 @@ func Reader2JSON(r io.Reader, description string) (string, []string, error) {
 			case 'B':
 				sb.WriteString(strings.ToLower(y))
 			case 'S':
+				y = sReplaceAll(y, `\`, `\\`)
 				y = sReplaceAll(y, `"`, `\"`)
 				y = sReplaceAll(y, "\n", "\\n")
 				sb.WriteString(`"` + y + `"`)
@@ -134,11 +138,11 @@ func Reader2JSON(r io.Reader, description string) (string, []string, error) {
 	rawMessage := json.RawMessage(sb.String())
 	jsonstr := string(rawMessage)
 
-	// if !isValidJSON(jsonstr) {
-	// 	os.WriteFile("./err.json", []byte(jsonstr), 0666)
-	// }
+	if !isValidJSON(jsonstr) {
+		mustWriteFile("./err.json", []byte(jsonstr))
+		return "", nil, fEf("Invalid JSON string")
+	}
 
-	failOnErrWhen(!isValidJSON(jsonstr), "%v", fEf("Invalid JSON string")) // validate output json
 	// return jsonstr, headers, nil
 	jsonbytes, err := json.MarshalIndent(rawMessage, "", "  ")
 	failOnErr("%v", err)
