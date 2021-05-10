@@ -29,6 +29,9 @@ func Info(r io.ReadSeeker) ([]string, int, error) {
 	if err != nil {
 		return nil, -1, err
 	}
+	if len(content) == 0 {
+		return []string{}, 0, nil
+	}
 	return content[0], len(content) - 1, nil
 }
 
