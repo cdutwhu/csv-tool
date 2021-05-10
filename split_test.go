@@ -111,8 +111,9 @@ func TestSplit(t *testing.T) {
 		// },
 	}
 
-	// ForceSingleProc(true)
-	NotSplittableOutDir("./ignore")
+	ForceSingleProc(true)
+	Dir4NotSplittable("./ignore")
+	StrictSchema(true)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

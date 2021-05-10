@@ -21,11 +21,17 @@ var (
 	parallel       = false
 	mustSingleProc = false
 	fileIgnoredOut = ""
+	strictSchema   = false
 )
 
 // Dir4NotSplittable :
 func Dir4NotSplittable(dir string) {
 	fileIgnoredOut = dir
+}
+
+// StrictSchema :
+func StrictSchema(strict bool) {
+	strictSchema = strict
 }
 
 // ForceNoParallel :
@@ -50,7 +56,30 @@ func Split(csvfile, outputdir string, keepcat bool, categories ...string) ([]str
 
 	in, err := os.ReadFile(csvfile)
 	if err != nil {
-		return nil, err
+		return nil, fEf("%v @ %s", err, csvfile)
+	}
+
+	// --------------- strict schema check --------------- //
+	headers, nRow, err := FileInfo(csvfile)
+	if err != nil {
+		return nil, fEf("%v @ %s", err, csvfile)
+	}
+	if strictSchema && len(fileIgnoredOut) > 0 {
+		if !ts.Superset(headers, schema) || nRow == 0 {
+
+			nsCsvFile := filepath.Join(fileIgnoredOut, csvfile)
+			if keepcat {
+				mustWriteFile(nsCsvFile, in)
+			} else {
+				mustCreateDir(filepath.Dir(nsCsvFile))
+				fw, err := os.OpenFile(nsCsvFile, os.O_WRONLY|os.O_CREATE, 0666)
+				failOnErr("%v @ %s", err, nsCsvFile)
+				Subset(in, false, schema, false, nil, fw)
+				fw.Close()
+			}
+
+			return []string{nsCsvFile}, nil
+		}
 	}
 
 	// --------------- parallel set --------------- //
@@ -96,14 +125,14 @@ func split(rl int, in []byte, prevpath string, keepcat bool, pCatItems ...string
 				nsCsvFile := filepath.Join(prevpath, fileIgnoredOutInfo, fileIgnoredInfo)
 
 				// subsetting ignored files
-				if !keepcat {
+				if keepcat {
+					mustWriteFile(nsCsvFile, in)
+				} else {
 					mustCreateDir(filepath.Dir(nsCsvFile))
 					fw, err := os.OpenFile(nsCsvFile, os.O_WRONLY|os.O_CREATE, 0666)
 					failOnErr("%v @ %s", err, nsCsvFile)
 					Subset(in, false, schema, false, nil, fw)
 					fw.Close()
-				} else {
-					mustWriteFile(nsCsvFile, in)
 				}
 
 				outfiles = append(outfiles, nsCsvFile)
