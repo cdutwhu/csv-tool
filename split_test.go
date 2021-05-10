@@ -35,10 +35,10 @@ func TestSplit(t *testing.T) {
 		{
 			name: "OK",
 			args: args{
-				csvfile:    "./data/itemResults0.csv",
-				outdir:     "outmedium",
+				csvfile:    "./data/splittest/itemResults0.csv",
+				outdir:     "out",
 				keepcat:    false,
-				categories: []string{"School", "Domain", "YrLevel"},
+				categories: []string{"School", "YrLevel", "Domain"},
 			},
 			want:    []string{},
 			wantErr: false,
@@ -46,10 +46,10 @@ func TestSplit(t *testing.T) {
 		{
 			name: "OK",
 			args: args{
-				csvfile:    "./data/data.csv",
-				outdir:     "outmedium",
+				csvfile:    "./data/itemResults111.csv",
+				outdir:     "out",
 				keepcat:    false,
-				categories: []string{"School", "Domain", "YrLevel"},
+				categories: []string{"School", "YrLevel", "Domain"},
 			},
 			want:    []string{},
 			wantErr: false,
@@ -57,17 +57,62 @@ func TestSplit(t *testing.T) {
 		{
 			name: "OK",
 			args: args{
-				csvfile:    "./data/big/itemResults.csv",
-				outdir:     "outbig",
+				csvfile:    "./data/itemResults110.csv",
+				outdir:     "out",
 				keepcat:    false,
-				categories: []string{"School", "Domain", "YrLevel"},
+				categories: []string{"School", "YrLevel", "Domain"},
 			},
 			want:    []string{},
 			wantErr: false,
 		},
+		{
+			name: "OK",
+			args: args{
+				csvfile:    "./data/itemResults101.csv",
+				outdir:     "out",
+				keepcat:    false,
+				categories: []string{"School", "YrLevel", "Domain"},
+			},
+			want:    []string{},
+			wantErr: false,
+		},
+		{
+			name: "OK",
+			args: args{
+				csvfile:    "./data/itemResults100.csv",
+				outdir:     "out",
+				keepcat:    false,
+				categories: []string{"School", "YrLevel", "Domain"},
+			},
+			want:    []string{},
+			wantErr: false,
+		},
+		// {
+		// 	name: "OK",
+		// 	args: args{
+		// 		csvfile:    "./data/data.csv",
+		// 		outdir:     "outmedium",
+		// 		keepcat:    false,
+		// 		categories: []string{"School", "Domain", "YrLevel"},
+		// 	},
+		// 	want:    []string{},
+		// 	wantErr: false,
+		// },
+		// {
+		// 	name: "OK",
+		// 	args: args{
+		// 		csvfile:    "./data/big/itemResults.csv",
+		// 		outdir:     "outbig",
+		// 		keepcat:    false,
+		// 		categories: []string{"School", "Domain", "YrLevel"},
+		// 	},
+		// 	want:    []string{},
+		// 	wantErr: false,
+		// },
 	}
 
-	ForceSingleProc(true)
+	// ForceSingleProc(true)
+	NotSplittableOutDir("./ignore")
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
