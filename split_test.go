@@ -46,7 +46,7 @@ func TestSplit(t *testing.T) {
 		{
 			name: "OK",
 			args: args{
-				csvfile:    "./data/itemResults111.csv",
+				csvfile:    "./data/sub/itemResults111.csv",
 				outdir:     "out",
 				keepcat:    false,
 				categories: []string{"School", "YrLevel", "Domain"},
@@ -57,7 +57,7 @@ func TestSplit(t *testing.T) {
 		{
 			name: "OK",
 			args: args{
-				csvfile:    "./data/itemResults110.csv",
+				csvfile:    "./data/sub/itemResults110.csv",
 				outdir:     "out",
 				keepcat:    false,
 				categories: []string{"School", "YrLevel", "Domain"},
@@ -68,7 +68,7 @@ func TestSplit(t *testing.T) {
 		{
 			name: "OK",
 			args: args{
-				csvfile:    "./data/itemResults101.csv",
+				csvfile:    "./data/sub/itemResults101.csv",
 				outdir:     "out",
 				keepcat:    false,
 				categories: []string{"School", "YrLevel", "Domain"},
@@ -79,7 +79,7 @@ func TestSplit(t *testing.T) {
 		{
 			name: "OK",
 			args: args{
-				csvfile:    "./data/itemResults100.csv",
+				csvfile:    "/home/qingmiao/Desktop/nrt-issue/csv-tool/data/sub/itemResults100.csv",
 				outdir:     "out",
 				keepcat:    false,
 				categories: []string{"School", "YrLevel", "Domain"},

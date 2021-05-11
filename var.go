@@ -34,6 +34,7 @@ var (
 	mustAppendFile  = io.MustAppendFile
 	mustCreateDir   = io.MustCreateDir
 	fileExists      = io.FileExists
+	relPath         = io.RelPath
 	iter2slc        = iter.Iter2Slc
 	isContInts      = gotk.IsContInts
 	trackTime       = gotk.TrackTime

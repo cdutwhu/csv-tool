@@ -67,7 +67,8 @@ func Split(csvfile, outputdir string, keepcat bool, categories ...string) ([]str
 	if strictSchema && len(fileIgnoredOut) > 0 {
 		if !ts.Superset(headers, schema) || nRow == 0 {
 
-			nsCsvFile := filepath.Join(fileIgnoredOut, csvfile)
+			nsCsvFile, _ := relPath(csvfile, false)
+			nsCsvFile = filepath.Join(fileIgnoredOut, nsCsvFile)
 			if keepcat {
 				mustWriteFile(nsCsvFile, in)
 			} else {
@@ -120,8 +121,9 @@ func split(rl int, in []byte, prevpath string, keepcat bool, pCatItems ...string
 			defer mtx.Unlock()
 			if len(rows) == 0 || (len(rows) > 0 && len(sTrim(rows[0], " \t")) == 0) {
 				fileIgnoredOutInfo := fSf("%s(missing %s)", fileIgnoredOut, cat)
-				fileIgnoredInfo := fSf("%s(%s).csv", sTrimSuffix(basename, ".csv"), csvdir)
-				fileIgnoredInfo = sReplaceAll(fileIgnoredInfo, "/", "~")
+				nsCsvDir, _ := relPath(csvdir, false)
+				fileIgnoredInfo := fSf("%s(%s).csv", sTrimSuffix(basename, ".csv"), nsCsvDir)
+				fileIgnoredInfo = sReplaceAll(fileIgnoredInfo, "/", "~")				
 				nsCsvFile := filepath.Join(prevpath, fileIgnoredOutInfo, fileIgnoredInfo)
 
 				// subsetting ignored files
