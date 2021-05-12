@@ -11,7 +11,6 @@ func TestSplit(t *testing.T) {
 	type args struct {
 		csvfile    string
 		outdir     string
-		keepcat    bool
 		categories []string
 	}
 	tests := []struct {
@@ -26,7 +25,6 @@ func TestSplit(t *testing.T) {
 			args: args{
 				csvfile:    "./data/splittest/system_reports/systemPNPEvents.csv",
 				outdir:     "out",
-				keepcat:    false,
 				categories: []string{"School", "YrLevel", "Domain"},
 			},
 			want:    []string{},
@@ -35,9 +33,8 @@ func TestSplit(t *testing.T) {
 		{
 			name: "OK",
 			args: args{
-				csvfile:    "./data/splittest/itemResults0.csv",
+				csvfile:    "./data/sub/itemResults0.csv",
 				outdir:     "out",
-				keepcat:    false,
 				categories: []string{"School", "YrLevel", "Domain"},
 			},
 			want:    []string{},
@@ -48,7 +45,6 @@ func TestSplit(t *testing.T) {
 			args: args{
 				csvfile:    "./data/sub/itemResults111.csv",
 				outdir:     "out",
-				keepcat:    false,
 				categories: []string{"School", "YrLevel", "Domain"},
 			},
 			want:    []string{},
@@ -59,7 +55,6 @@ func TestSplit(t *testing.T) {
 			args: args{
 				csvfile:    "./data/sub/itemResults110.csv",
 				outdir:     "out",
-				keepcat:    false,
 				categories: []string{"School", "YrLevel", "Domain"},
 			},
 			want:    []string{},
@@ -70,7 +65,6 @@ func TestSplit(t *testing.T) {
 			args: args{
 				csvfile:    "./data/sub/itemResults101.csv",
 				outdir:     "out",
-				keepcat:    false,
 				categories: []string{"School", "YrLevel", "Domain"},
 			},
 			want:    []string{},
@@ -81,7 +75,6 @@ func TestSplit(t *testing.T) {
 			args: args{
 				csvfile:    "/home/qingmiao/Desktop/nrt-issue/csv-tool/data/sub/itemResults100.csv",
 				outdir:     "out",
-				keepcat:    false,
 				categories: []string{"School", "YrLevel", "Domain"},
 			},
 			want:    []string{},
@@ -92,7 +85,6 @@ func TestSplit(t *testing.T) {
 		// 	args: args{
 		// 		csvfile:    "./data/data.csv",
 		// 		outdir:     "outmedium",
-		// 		keepcat:    false,
 		// 		categories: []string{"School", "Domain", "YrLevel"},
 		// 	},
 		// 	want:    []string{},
@@ -103,7 +95,6 @@ func TestSplit(t *testing.T) {
 		// 	args: args{
 		// 		csvfile:    "./data/big/itemResults.csv",
 		// 		outdir:     "outbig",
-		// 		keepcat:    false,
 		// 		categories: []string{"School", "Domain", "YrLevel"},
 		// 	},
 		// 	want:    []string{},
@@ -112,12 +103,14 @@ func TestSplit(t *testing.T) {
 	}
 
 	ForceSingleProc(true)
-	Dir4NotSplittable("./ignore")
-	StrictSchema(true)
+	Dir4NotSplittable("./out/ignore")
+	StrictSchema(false)
+	KeepCatHeaders(true)
+	KeepIgnCatHeaders(true)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			outfiles, _ := Split(tt.args.csvfile, tt.args.outdir, tt.args.keepcat, tt.args.categories...)
+			outfiles, _ := Split(tt.args.csvfile, tt.args.outdir, tt.args.categories...)
 			fmt.Println(len(outfiles))
 		})
 	}

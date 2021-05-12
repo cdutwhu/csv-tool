@@ -16,6 +16,8 @@ var (
 	mtx            = &sync.Mutex{}
 	schema         []string
 	nSchema        int
+	keepCatHdr     bool
+	keepIgnCatHdr  bool
 	outdir         string
 	outfiles       []string
 	parallel       = false
@@ -24,7 +26,17 @@ var (
 	strictSchema   = false
 )
 
-// Dir4NotSplittable :
+// KeepCatHeaders :
+func KeepCatHeaders(keep bool) {
+	keepCatHdr = keep
+}
+
+// KeepIgnCatHeaders :
+func KeepIgnCatHeaders(keep bool) {
+	keepIgnCatHdr = keep
+}
+
+// Dir4NotSplittable : in LooseMode, only take the last path seg for dump folder
 func Dir4NotSplittable(dir string) {
 	fileIgnoredOut = dir
 }
@@ -40,7 +52,7 @@ func ForceSingleProc(sp bool) {
 }
 
 // Split :
-func Split(csvfile, outputdir string, keepcat bool, categories ...string) ([]string, error) {
+func Split(csvfile, outputdir string, categories ...string) ([]string, error) {
 
 	basename = filepath.Base(csvfile)
 	csvdir = filepath.Dir(csvfile)
@@ -69,7 +81,7 @@ func Split(csvfile, outputdir string, keepcat bool, categories ...string) ([]str
 
 			nsCsvFile, _ := relPath(csvfile, false)
 			nsCsvFile = filepath.Join(fileIgnoredOut, nsCsvFile)
-			if keepcat {
+			if keepIgnCatHdr {
 				mustWriteFile(nsCsvFile, in)
 			} else {
 				mustCreateDir(filepath.Dir(nsCsvFile))
@@ -91,10 +103,10 @@ func Split(csvfile, outputdir string, keepcat bool, categories ...string) ([]str
 	// fmt.Printf("%s running on parallel? %v\n", csvfile, parallel)
 
 	outfiles = []string{}
-	return outfiles, split(0, in, outdir, keepcat)
+	return outfiles, split(0, in, outdir)
 }
 
-func split(rl int, in []byte, prevpath string, keepcat bool, pCatItems ...string) error {
+func split(rl int, in []byte, prevpath string, pCatItems ...string) error {
 
 	if rl >= nSchema {
 		return nil
@@ -104,7 +116,7 @@ func split(rl int, in []byte, prevpath string, keepcat bool, pCatItems ...string
 	rl++
 
 	rmHdrGrp := []string{cat}
-	if keepcat {
+	if keepCatHdr {
 		rmHdrGrp = nil
 	}
 
@@ -120,14 +132,14 @@ func split(rl int, in []byte, prevpath string, keepcat bool, pCatItems ...string
 			mtx.Lock()
 			defer mtx.Unlock()
 			if len(rows) == 0 || (len(rows) > 0 && len(sTrim(rows[0], " \t")) == 0) {
-				fileIgnoredOutInfo := fSf("%s(missing %s)", fileIgnoredOut, cat)
+
+				fileIgnoredOutInfo := fSf("%s(missing %s)", filepath.Base(fileIgnoredOut), cat)
 				nsCsvDir, _ := relPath(csvdir, false)
 				fileIgnoredInfo := fSf("%s(%s).csv", sTrimSuffix(basename, ".csv"), nsCsvDir)
-				fileIgnoredInfo = sReplaceAll(fileIgnoredInfo, "/", "~")				
+				fileIgnoredInfo = sReplaceAll(fileIgnoredInfo, "/", "~")
 				nsCsvFile := filepath.Join(prevpath, fileIgnoredOutInfo, fileIgnoredInfo)
 
-				// subsetting ignored files
-				if keepcat {
+				if keepIgnCatHdr {
 					mustWriteFile(nsCsvFile, in)
 				} else {
 					mustCreateDir(filepath.Dir(nsCsvFile))
@@ -177,7 +189,7 @@ func split(rl int, in []byte, prevpath string, keepcat bool, pCatItems ...string
 				outfiles = append(outfiles, outcsv)
 			}
 
-			split(rl, wBuf.Bytes(), filepath.Dir(outcsv), keepcat, append(pCatItems, catItem)...)
+			split(rl, wBuf.Bytes(), filepath.Dir(outcsv), append(pCatItems, catItem)...)
 		}
 	}
 
@@ -216,7 +228,7 @@ func split(rl int, in []byte, prevpath string, keepcat bool, pCatItems ...string
 					mtx.Unlock()
 				}
 
-				split(rl, wBuf.Bytes(), filepath.Dir(outcsv), keepcat, append(pCatItems, catItem)...)
+				split(rl, wBuf.Bytes(), filepath.Dir(outcsv), append(pCatItems, catItem)...)
 
 			}(catItem)
 		}
