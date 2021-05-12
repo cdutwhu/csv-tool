@@ -19,7 +19,8 @@ var (
 	keepCatHdr     bool
 	keepIgnCatHdr  bool
 	outdir         string
-	outfiles       []string
+	splitfiles     []string
+	ignoredfiles   []string
 	parallel       = false
 	mustSingleProc = false
 	fileIgnoredOut = ""
@@ -51,8 +52,8 @@ func ForceSingleProc(sp bool) {
 	mustSingleProc = sp
 }
 
-// Split :
-func Split(csvfile, outputdir string, categories ...string) ([]string, error) {
+// Split : return (splitfiles, ignoredfiles, error)
+func Split(csvfile, outputdir string, categories ...string) ([]string, []string, error) {
 
 	basename = filepath.Base(csvfile)
 	csvdir = filepath.Dir(csvfile)
@@ -68,13 +69,13 @@ func Split(csvfile, outputdir string, categories ...string) ([]string, error) {
 
 	in, err := os.ReadFile(csvfile)
 	if err != nil {
-		return nil, fEf("%v @ %s", err, csvfile)
+		return nil, nil, fEf("%v @ %s", err, csvfile)
 	}
 
 	// --------------- strict schema check --------------- //
 	headers, nRow, err := FileInfo(csvfile)
 	if err != nil {
-		return nil, fEf("%v @ %s", err, csvfile)
+		return nil, nil, fEf("%v @ %s", err, csvfile)
 	}
 	if strictSchema && len(fileIgnoredOut) > 0 {
 		if !ts.Superset(headers, schema) || nRow == 0 {
@@ -91,7 +92,7 @@ func Split(csvfile, outputdir string, categories ...string) ([]string, error) {
 				fw.Close()
 			}
 
-			return []string{nsCsvFile}, nil
+			return []string{}, []string{nsCsvFile}, nil
 		}
 	}
 
@@ -102,8 +103,9 @@ func Split(csvfile, outputdir string, categories ...string) ([]string, error) {
 	}
 	// fmt.Printf("%s running on parallel? %v\n", csvfile, parallel)
 
-	outfiles = []string{}
-	return outfiles, split(0, in, outdir)
+	splitfiles = []string{}
+	ignoredfiles = []string{}
+	return splitfiles, ignoredfiles, split(0, in, outdir)
 }
 
 func split(rl int, in []byte, prevpath string, pCatItems ...string) error {
@@ -149,7 +151,7 @@ func split(rl int, in []byte, prevpath string, pCatItems ...string) error {
 					fw.Close()
 				}
 
-				outfiles = append(outfiles, nsCsvFile)
+				ignoredfiles = append(ignoredfiles, nsCsvFile)
 				return true
 			}
 			return false
@@ -186,7 +188,7 @@ func split(rl int, in []byte, prevpath string, pCatItems ...string) error {
 
 			if rl == nSchema {
 				mustWriteFile(outcsv, wBuf.Bytes())
-				outfiles = append(outfiles, outcsv)
+				splitfiles = append(splitfiles, outcsv)
 			}
 
 			split(rl, wBuf.Bytes(), filepath.Dir(outcsv), append(pCatItems, catItem)...)
@@ -224,7 +226,7 @@ func split(rl int, in []byte, prevpath string, pCatItems ...string) error {
 				if rl == nSchema {
 					mtx.Lock()
 					mustWriteFile(outcsv, wBuf.Bytes())
-					outfiles = append(outfiles, outcsv)
+					splitfiles = append(splitfiles, outcsv)
 					mtx.Unlock()
 				}
 

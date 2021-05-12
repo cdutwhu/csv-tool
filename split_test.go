@@ -23,7 +23,7 @@ func TestSplit(t *testing.T) {
 		{
 			name: "OK",
 			args: args{
-				csvfile:    "./data/splittest/system_reports/systemPNPEvents.csv",
+				csvfile:    "./data/qldStudent.csv",
 				outdir:     "out",
 				categories: []string{"School", "YrLevel", "Domain"},
 			},
@@ -104,14 +104,15 @@ func TestSplit(t *testing.T) {
 
 	ForceSingleProc(true)
 	Dir4NotSplittable("./out/ignore")
-	StrictSchema(false)
+	StrictSchema(true)
 	KeepCatHeaders(true)
 	KeepIgnCatHeaders(true)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			outfiles, _ := Split(tt.args.csvfile, tt.args.outdir, tt.args.categories...)
-			fmt.Println(len(outfiles))
+			splitfiles, ignoredfiles, _ := Split(tt.args.csvfile, tt.args.outdir, tt.args.categories...)
+			fmt.Println(len(splitfiles))
+			fmt.Println(len(ignoredfiles))
 		})
 	}
 
