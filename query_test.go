@@ -96,7 +96,7 @@ func TestQuery(t *testing.T) {
 	defer trackTime(time.Now())
 	enableLog2F(true, "./TestQuery.log")
 
-	dir := "./data/splittest/system_reports"
+	dir := "./data"
 	files, err := os.ReadDir(dir)
 	failOnErr("%v", err)
 

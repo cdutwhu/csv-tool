@@ -257,6 +257,14 @@ func QueryFile(csvpath string, incColMode bool, hdrNames []string, R rune, CGrp 
 		return fEf("[%s] does NOT exist, ignore", csvpath)
 	}
 
+	if csvpath == outcsv {
+		outcsv += ".csv"
+		defer func() {
+			os.Remove(csvpath)
+			os.Rename(outcsv, csvpath)
+		}()
+	}
+
 	in, err := os.ReadFile(csvpath)
 	failP1OnErr("%v", err)
 
