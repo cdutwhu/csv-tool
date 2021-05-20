@@ -32,15 +32,54 @@ func Info(r io.ReadSeeker) ([]string, int, error) {
 	if len(content) == 0 {
 		return []string{}, 0, nil
 	}
+	defer r.Seek(0, io.SeekStart)
 	return content[0], len(content) - 1, nil
 }
 
 // FileInfo : headers, nItem, error
 func FileInfo(csvpath string) ([]string, int, error) {
 	csvFile, err := os.Open(csvpath)
-	failP1OnErr("The file is not found || wrong root : %v", err)
+	if err != nil {
+		if csvFile != nil {
+			csvFile.Close()
+		}
+		return nil, 0, err
+	}
 	defer csvFile.Close()
 	return Info(csvFile)
+}
+
+// Column : header, items, err
+func Column(r io.ReadSeeker, idx int) (hdr string, items []string, err error) {
+	headers, _, err := Info(r)
+	if err != nil {
+		return "", nil, err
+	}
+	if idx >= len(headers) {
+		return "", nil, fEf("idx(%d) is out of index range", idx)
+	}
+	return csvReader(r, func(i, n int, headers, items []string) (ok bool, hdrRow, row string) {
+		return true, headers[idx], items[idx]
+	}, true, nil)
+}
+
+// FileColumn : header, items, err
+func FileColumn(csvpath string, idx int) (hdr string, items []string, err error) {
+	csvFile, err := os.Open(csvpath)
+	if err != nil {
+		if csvFile != nil {
+			csvFile.Close()
+		}
+		return "", nil, err
+	}
+	defer csvFile.Close()
+	return Column(csvFile, idx)
+}
+
+// ColumnAttr :
+func ColumnAttr(r io.ReadSeeker, idx int) (empty, unique, hasNull, hasEmpty bool) {
+	panic("TODO...")
+	return false, false, false, false
 }
 
 // ScanByRow : if [f arg: i==-1], it is pure HeaderRow csv
