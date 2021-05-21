@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/digisan/gotk/slice/ts"
 )
 
 func mkValid(item string) string {
@@ -60,7 +62,7 @@ func Column(r io.ReadSeeker, idx int) (hdr string, items []string, err error) {
 	}
 	return csvReader(r, func(i, n int, headers, items []string) (ok bool, hdrRow, row string) {
 		return true, headers[idx], items[idx]
-	}, true, nil)
+	}, true, true, nil)
 }
 
 // FileColumn : header, items, err
@@ -77,18 +79,67 @@ func FileColumn(csvpath string, idx int) (hdr string, items []string, err error)
 }
 
 // ColumnAttr :
-func ColumnAttr(r io.ReadSeeker, idx int) (empty, unique, hasNull, hasEmpty bool) {
-	panic("TODO...")
-	return false, false, false, false
+type ColumnAttr struct {
+	Idx       int
+	Header    string
+	IsEmpty   bool
+	IsUnique  bool
+	HasNull   bool
+	HasEmpty  bool
+	FilledAll bool // no item is "null/NULL/nil" AND no empty item 
+}
+
+// ColAttr :
+func ColAttr(r io.ReadSeeker, idx int) (*ColumnAttr, error) {
+
+	hdr, items, err := Column(r, idx)
+	if err != nil {
+		return nil, err
+	}
+	ca := &ColumnAttr{
+		Idx:       idx,
+		Header:    hdr,
+		IsEmpty:   len(items) == 0,
+		IsUnique:  len(items) == len(ts.MkSet(items...)),
+		HasNull:   false,
+		HasEmpty:  false,
+		FilledAll: true,
+	}
+	for _, item := range items {
+		switch sTrim(item, " \t") {
+		case "null", "nil", "NULL":
+			ca.HasNull = true
+		case "":
+			ca.HasEmpty = true
+		}
+		if ca.HasNull && ca.HasEmpty {
+			break
+		}
+	}
+	ca.FilledAll = !ca.HasNull && !ca.HasEmpty
+	return ca, nil
+}
+
+// FileColAttr :
+func FileColAttr(csvpath string, idx int) (*ColumnAttr, error) {
+	csvFile, err := os.Open(csvpath)
+	if err != nil {
+		if csvFile != nil {
+			csvFile.Close()
+		}
+		return nil, err
+	}
+	defer csvFile.Close()
+	return ColAttr(csvFile, idx)
 }
 
 // ScanByRow : if [f arg: i==-1], it is pure HeaderRow csv
-func ScanByRow(in []byte, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), oriHdrIfNoRows bool, w io.Writer) (string, []string, error) {
-	return csvReader(bytes.NewReader(in), f, oriHdrIfNoRows, w)
+func ScanByRow(in []byte, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), keepHdrOnEmpty bool, w io.Writer) (string, []string, error) {
+	return csvReader(bytes.NewReader(in), f, keepHdrOnEmpty, false, w)
 }
 
 // csvReader : if [f arg: i==-1], it is pure HeaderRow csv
-func csvReader(r io.ReadSeeker, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), oriHdrIfNoRows bool, w io.Writer) (string, []string, error) {
+func csvReader(r io.ReadSeeker, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), keepHdrOnEmpty, keepAnyRow bool, w io.Writer) (string, []string, error) {
 
 	content, err := csv.NewReader(r).ReadAll()
 	// failOnErr("%v", err)
@@ -121,7 +172,7 @@ func csvReader(r io.ReadSeeker, f func(i, n int, headers, items []string) (ok bo
 	N := len(content) // N is row's count
 	hdrRow, allRows := "", []string{}
 
-	if oriHdrIfNoRows && N == 0 {
+	if keepHdrOnEmpty && N == 0 {
 		hdrRow = sJoin(headers, ",")
 	}
 
@@ -148,8 +199,12 @@ func csvReader(r io.ReadSeeker, f func(i, n int, headers, items []string) (ok bo
 	for i, d := range content {
 		if ok, hRow, row := f(i, N, headers, d); ok {
 			hdrRow = hRow
-			if row != "" { // we use f to return row content for deciding wether to add this row
+			if keepAnyRow {
 				allRows = append(allRows, row)
+			} else {
+				if row != "" { // we use f to return row content for deciding wether to add this row
+					allRows = append(allRows, row)
+				}
 			}
 		}
 	}
@@ -166,7 +221,7 @@ SAVE:
 }
 
 // File2Rows :
-func File2Rows(csvpath string, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), oriHdrIfNoRows bool, outcsv string) (string, []string, error) {
+func File2Rows(csvpath string, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), keepHdrOnEmpty bool, outcsv string) (string, []string, error) {
 
 	fr, err := os.Open(csvpath)
 	failP1OnErr("csvpath: he file is not found || wrong root : %v", err)
@@ -177,8 +232,7 @@ func File2Rows(csvpath string, f func(i, n int, headers, items []string) (ok boo
 	failP1OnErr("outcsv: The file is not found || wrong root : %v", err)
 	defer fw.Close()
 
-	hRow, rows, err := csvReader(fr, f, oriHdrIfNoRows, fw)
+	hRow, rows, err := csvReader(fr, f, keepHdrOnEmpty, false, fw)
 	failOnErrWhen(rows == nil, "%v @ %s", err, csvpath) // go internal csv func error
 	return hRow, rows, err
-
 }
