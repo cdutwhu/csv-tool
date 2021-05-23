@@ -6,8 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-
-	"github.com/digisan/gotk/slice/ts"
 )
 
 func mkValid(item string) string {
@@ -26,15 +24,21 @@ func mkValid(item string) string {
 }
 
 // Info : headers, nItem, error
-func Info(r io.ReadSeeker) ([]string, int, error) {
+func Info(r io.Reader) ([]string, int, error) {
+	rs, ok := r.(io.ReadSeeker)
 	content, err := csv.NewReader(r).ReadAll()
 	if err != nil {
+		if ok {
+			rs.Seek(0, io.SeekStart)
+		}
 		return nil, -1, err
+	}
+	if ok {
+		defer rs.Seek(0, io.SeekStart)
 	}
 	if len(content) == 0 {
 		return []string{}, 0, nil
 	}
-	defer r.Seek(0, io.SeekStart)
 	return content[0], len(content) - 1, nil
 }
 
@@ -51,100 +55,24 @@ func FileInfo(csvpath string) ([]string, int, error) {
 	return Info(csvFile)
 }
 
-// Column : header, items, err
-func Column(r io.ReadSeeker, idx int) (hdr string, items []string, err error) {
-	headers, _, err := Info(r)
-	if err != nil {
-		return "", nil, err
-	}
-	if idx >= len(headers) {
-		return "", nil, fEf("idx(%d) is out of index range", idx)
-	}
-	return csvReader(r, func(i, n int, headers, items []string) (ok bool, hdrRow, row string) {
-		return true, headers[idx], items[idx]
-	}, true, true, nil)
-}
-
-// FileColumn : header, items, err
-func FileColumn(csvpath string, idx int) (hdr string, items []string, err error) {
-	csvFile, err := os.Open(csvpath)
-	if err != nil {
-		if csvFile != nil {
-			csvFile.Close()
-		}
-		return "", nil, err
-	}
-	defer csvFile.Close()
-	return Column(csvFile, idx)
-}
-
-// ColumnAttr :
-type ColumnAttr struct {
-	Idx       int
-	Header    string
-	IsEmpty   bool
-	IsUnique  bool
-	HasNull   bool
-	HasEmpty  bool
-	FilledAll bool // no item is "null/NULL/nil" AND no empty item 
-}
-
-// ColAttr :
-func ColAttr(r io.ReadSeeker, idx int) (*ColumnAttr, error) {
-
-	hdr, items, err := Column(r, idx)
-	if err != nil {
-		return nil, err
-	}
-	ca := &ColumnAttr{
-		Idx:       idx,
-		Header:    hdr,
-		IsEmpty:   len(items) == 0,
-		IsUnique:  len(items) == len(ts.MkSet(items...)),
-		HasNull:   false,
-		HasEmpty:  false,
-		FilledAll: true,
-	}
-	for _, item := range items {
-		switch sTrim(item, " \t") {
-		case "null", "nil", "NULL":
-			ca.HasNull = true
-		case "":
-			ca.HasEmpty = true
-		}
-		if ca.HasNull && ca.HasEmpty {
-			break
-		}
-	}
-	ca.FilledAll = !ca.HasNull && !ca.HasEmpty
-	return ca, nil
-}
-
-// FileColAttr :
-func FileColAttr(csvpath string, idx int) (*ColumnAttr, error) {
-	csvFile, err := os.Open(csvpath)
-	if err != nil {
-		if csvFile != nil {
-			csvFile.Close()
-		}
-		return nil, err
-	}
-	defer csvFile.Close()
-	return ColAttr(csvFile, idx)
-}
-
 // ScanByRow : if [f arg: i==-1], it is pure HeaderRow csv
 func ScanByRow(in []byte, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), keepHdrOnEmpty bool, w io.Writer) (string, []string, error) {
 	return csvReader(bytes.NewReader(in), f, keepHdrOnEmpty, false, w)
 }
 
 // csvReader : if [f arg: i==-1], it is pure HeaderRow csv
-func csvReader(r io.ReadSeeker, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), keepHdrOnEmpty, keepAnyRow bool, w io.Writer) (string, []string, error) {
-
+func csvReader(r io.Reader, f func(i, n int, headers, items []string) (ok bool, hdrRow, row string), keepHdrOnEmpty, keepAnyRow bool, w io.Writer) (string, []string, error) {
+	rs, ok := r.(io.ReadSeeker)
 	content, err := csv.NewReader(r).ReadAll()
 	// failOnErr("%v", err)
 	if err != nil {
+		if ok {
+			rs.Seek(0, io.SeekStart)
+		}
 		return "", nil, err
+	}
+	if ok {
+		defer rs.Seek(0, io.SeekStart)
 	}
 
 	if len(content) < 1 {
