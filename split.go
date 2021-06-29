@@ -82,6 +82,13 @@ func Split(csvfile, outputdir string, categories ...string) ([]string, []string,
 
 			nsCsvFile, _ := relPath(csvfile, false)
 			nsCsvFile = filepath.Join(fileIgnoredOut, nsCsvFile)
+
+			// relPath output likes '../***' is not working with filepath.Join
+			// manually put nsCsvFile under fileIgnoredOut.
+			if !sContains(nsCsvFile, fileIgnoredOut+"/") {
+				nsCsvFile = filepath.Join(fileIgnoredOut, nsCsvFile)
+			}
+
 			if keepIgnCatHdr {
 				mustWriteFile(nsCsvFile, in)
 			} else {
