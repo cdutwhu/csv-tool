@@ -2,7 +2,14 @@ package csvtool
 
 import (
 	"testing"
+
+	"github.com/digisan/gotk/slice/ts"
 )
+
+func fortest() {
+	headersC := ts.MkSet("a", "b", "c", "a", "c", "d")
+	fPln(headersC)
+}
 
 func Test_fortest(t *testing.T) {
 	tests := []struct {

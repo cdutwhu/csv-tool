@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/digisan/gotk/io"
+	fd "github.com/digisan/gotk/filedir"
 )
 
 func TestSplit(t *testing.T) {
@@ -116,7 +116,7 @@ func TestSplit(t *testing.T) {
 		})
 	}
 
-	fmt.Println(io.FileDirCount("out", true))
-	fmt.Println(io.FileDirCount("outmedium", true))
-	fmt.Println(io.FileDirCount("outbig", true))
+	fmt.Println(fd.WalkFileDir("out", true))
+	fmt.Println(fd.WalkFileDir("outmedium", true))
+	fmt.Println(fd.WalkFileDir("outbig", true))
 }

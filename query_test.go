@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/digisan/gotk/io"
+	fd "github.com/digisan/gotk/filedir"
 )
 
 func TestSubset(t *testing.T) {
@@ -144,8 +144,8 @@ func TestQuery(t *testing.T) {
 
 	wg.Wait()
 
-	fmt.Println(io.FileDirCount(dir, true))
-	fmt.Println(io.FileDirCount("out/", true))
+	fmt.Println(fd.WalkFileDir(dir, true))
+	fmt.Println(fd.WalkFileDir("out/", true))
 }
 
 func TestQueryAtConfig(t *testing.T) {

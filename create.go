@@ -7,10 +7,7 @@ import (
 	"github.com/digisan/gotk/slice/tsi"
 )
 
-func fortest() {
-	headersC := ts.MkSet("a", "b", "c", "a", "c", "d")
-	fPln(headersC)
-}
+
 
 // Create : create csv file with input headers
 func Create(outcsv string, hdrNames ...string) (string, error) {

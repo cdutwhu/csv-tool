@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cdutwhu/debog/fn"
-	jsontool "github.com/cdutwhu/json-tool"
 	"github.com/digisan/gotk"
+	fd "github.com/digisan/gotk/filedir"
 	"github.com/digisan/gotk/io"
 	"github.com/digisan/gotk/iter"
+	jt "github.com/digisan/json-tool"
+	lk "github.com/digisan/logkit"
 )
 
 var (
@@ -24,20 +25,20 @@ var (
 	sTrimSuffix = strings.TrimSuffix
 	sTrim       = strings.Trim
 
-	failOnErr       = fn.FailOnErr
-	failP1OnErr     = fn.FailP1OnErr
-	failOnErrWhen   = fn.FailOnErrWhen
-	failP1OnErrWhen = fn.FailP1OnErrWhen
-	warnOnErr       = fn.WarnOnErr
-	enableLog2F     = fn.EnableLog2F
+	enableLog2F     = lk.Log2F
+	failOnErr       = lk.FailOnErr
+	failP1OnErr     = lk.FailP1OnErr
+	failOnErrWhen   = lk.FailOnErrWhen
+	failP1OnErrWhen = lk.FailP1OnErrWhen
+	warnOnErr       = lk.WarnOnErr
 	mustWriteFile   = io.MustWriteFile
 	mustAppendFile  = io.MustAppendFile
 	mustCreateDir   = io.MustCreateDir
-	fileExists      = io.FileExists
-	relPath         = io.RelPath
+	fileExists      = fd.FileExists
+	relPath         = fd.RelPath
 	iter2slc        = iter.Iter2Slc
 	isContInts      = gotk.IsContInts
 	trackTime       = gotk.TrackTime
-	isValidJSON     = jsontool.IsValid
-	jsonScalarSelX  = jsontool.ScalarSelX
+	isValidJSON     = jt.IsValid
+	jsonScalarSelX  = jt.ScalarSelX
 )

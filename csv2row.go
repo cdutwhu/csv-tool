@@ -83,7 +83,7 @@ func csvReader(r io.Reader, f func(i, n int, headers, items []string) (ok bool, 
 	for i, hdrItem := range content[0] {
 		if hdrItem == "" {
 			hdrItem = fSf("column_%d", i)
-			fPln(warnOnErr("%v: - column[%d] is empty, mark [%s]", fEf("CSV_COLUMN_HEADER_EMPTY"), i, hdrItem))
+			warnOnErr("%v: - column[%d] is empty, mark [%s]", fEf("CSV_COLUMN_HEADER_EMPTY"), i, hdrItem)
 		}
 		headers = append(headers, mkValid(hdrItem))
 	}
