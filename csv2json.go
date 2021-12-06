@@ -136,10 +136,10 @@ func Reader2JSON(r io.Reader, description string) (string, []string, error) {
 
 	sb.WriteString(`]`)
 	rawMessage := json.RawMessage(sb.String())
-	jsonstr := string(rawMessage)
+	data := []byte(string(rawMessage))
 
-	if !isValidJSON(jsonstr) {
-		mustWriteFile("./err.json", []byte(jsonstr))
+	if !isValidJSON(data) {
+		mustWriteFile("./err.json", data)
 		return "", nil, fEf("Invalid JSON string")
 	}
 

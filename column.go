@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/digisan/gotk/slice/ts"
+	"github.com/digisan/gotk/generics/ts"
 )
 
 // ColumnAttr :

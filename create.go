@@ -1,10 +1,10 @@
 package csvtool
 
 import (
-	"github.com/digisan/gotk/slice/ti"
-	"github.com/digisan/gotk/slice/tis"
-	"github.com/digisan/gotk/slice/ts"
-	"github.com/digisan/gotk/slice/tsi"
+	"github.com/digisan/gotk/generics/ti"
+	"github.com/digisan/gotk/generics/tis"
+	"github.com/digisan/gotk/generics/ts"
+	"github.com/digisan/gotk/generics/tsi"
 )
 
 

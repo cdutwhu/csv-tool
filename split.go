@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/digisan/gotk/slice/ts"
+	"github.com/digisan/gotk/generics/ts"
 )
 
 var (

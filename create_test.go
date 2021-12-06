@@ -3,7 +3,7 @@ package csvtool
 import (
 	"testing"
 
-	"github.com/digisan/gotk/slice/ts"
+	"github.com/digisan/gotk/generics/ts"
 )
 
 func fortest() {

@@ -9,10 +9,10 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/cdutwhu/csv-tool/queryconfig"
-	"github.com/digisan/gotk/slice/ti"
-	"github.com/digisan/gotk/slice/ti32"
-	"github.com/digisan/gotk/slice/ts"
-	"github.com/digisan/gotk/slice/tsi"
+	"github.com/digisan/gotk/generics/ti"
+	"github.com/digisan/gotk/generics/ti32"
+	"github.com/digisan/gotk/generics/ts"
+	"github.com/digisan/gotk/generics/tsi"
 )
 
 // Unique : remove repeated items
