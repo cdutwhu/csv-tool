@@ -9,10 +9,10 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/cdutwhu/csv-tool/queryconfig"
-	"github.com/digisan/gotk/generics/ti"
-	"github.com/digisan/gotk/generics/ti32"
-	"github.com/digisan/gotk/generics/ts"
-	"github.com/digisan/gotk/generics/tsi"
+	"github.com/digisan/go-generics/i32"
+	"github.com/digisan/go-generics/i64"
+	"github.com/digisan/go-generics/si64"
+	"github.com/digisan/go-generics/str"
 )
 
 // Unique : remove repeated items
@@ -29,8 +29,8 @@ func Unique(csvpath, outcsv string) (string, []string, error) {
 			}
 			m[row] = struct{}{}
 
-			headers4w := ts.FM(headers, nil, func(i int, e string) string { return mkValid(e) })
-			items4w := ts.FM(items, nil, func(i int, e string) string { return mkValid(e) })
+			headers4w := str.FM(headers, nil, func(i int, e string) string { return mkValid(e) })
+			items4w := str.FM(items, nil, func(i int, e string) string { return mkValid(e) })
 			return true, sJoin(headers4w, ","), sJoin(items4w, ",")
 		},
 		true,
@@ -41,9 +41,9 @@ func Unique(csvpath, outcsv string) (string, []string, error) {
 // Subset : content iRow start from 0. i.e. 1st content row index is 0
 func Subset(in []byte, incColMode bool, hdrNames []string, incRowMode bool, iRows []int, w io.Writer) (string, []string, error) {
 
-	fnRow := ti.NotIn
+	fnRow := i64.NotIn
 	if incRowMode {
-		fnRow = ti.In
+		fnRow = i64.In
 	}
 
 	cIndices, hdrRow := []int{}, ""
@@ -56,19 +56,19 @@ func Subset(in []byte, incColMode bool, hdrNames []string, incRowMode bool, iRow
 			// select needed columns, cIndices is qualified header's original index in file headers
 			var hdrRt []string
 			if incColMode {
-				cIndices = tsi.FM(hdrNames,
-					func(i int, e string) bool { return ts.In(e, headers...) },
-					func(i int, e string) int { return ts.IdxOf(e, headers...) },
+				cIndices = si64.FM(hdrNames,
+					func(i int, e string) bool { return str.In(e, headers...) },
+					func(i int, e string) int { return str.IdxOf(e, headers...) },
 				)
-				hdrRt = ts.Reorder(headers, cIndices) // Reorder has filter
-				hdrRt = ts.FM(hdrRt, nil, func(i int, e string) string { return mkValid(e) })
+				hdrRt = str.Reorder(headers, cIndices) // Reorder has filter
+				hdrRt = str.FM(hdrRt, nil, func(i int, e string) string { return mkValid(e) })
 			} else {
-				cIndices = tsi.FM(headers,
-					func(i int, e string) bool { return ts.NotIn(e, hdrNames...) },
+				cIndices = si64.FM(headers,
+					func(i int, e string) bool { return str.NotIn(e, hdrNames...) },
 					func(i int, e string) int { return i },
 				)
-				hdrRt = ts.FM(headers,
-					func(i int, e string) bool { return ti.In(i, cIndices...) },
+				hdrRt = str.FM(headers,
+					func(i int, e string) bool { return i64.In(i, cIndices...) },
 					func(i int, e string) string { return mkValid(e) },
 				)
 			}
@@ -90,11 +90,11 @@ func Subset(in []byte, incColMode bool, hdrNames []string, incRowMode bool, iRow
 			// filter column items
 			var itemsRt []string
 			if incColMode {
-				itemsRt = ts.Reorder(items, cIndices)
-				itemsRt = ts.FM(itemsRt, nil, func(i int, e string) string { return mkValid(e) })
+				itemsRt = str.Reorder(items, cIndices)
+				itemsRt = str.FM(itemsRt, nil, func(i int, e string) string { return mkValid(e) })
 			} else {
-				itemsRt = ts.FM(items,
-					func(i int, e string) bool { return ti.In(i, cIndices...) },
+				itemsRt = str.FM(items,
+					func(i int, e string) bool { return i64.In(i, cIndices...) },
 					func(i int, e string) string { return mkValid(e) },
 				)
 			}
@@ -119,12 +119,12 @@ type Condition struct {
 // [=, !=] only apply to string comparasion, [>, <, >=, <=] apply to number comparasion
 func Select(in []byte, R rune, CGrp []Condition, w io.Writer) (string, []string, error) {
 
-	failP1OnErrWhen(ti32.NotIn(R, '&', '|'), "%v", fEf("R can only be [&, |]"))
+	failP1OnErrWhen(i32.NotIn(R, '&', '|'), "%v", fEf("R can only be [&, |]"))
 	nCGrp := len(CGrp)
 
 	return ScanByRow(in, func(idx, cnt int, headers, items []string) (bool, string, string) {
 
-		hdrNames := ts.FM(headers, nil, func(i int, e string) string { return mkValid(e) })
+		hdrNames := str.FM(headers, nil, func(i int, e string) string { return mkValid(e) })
 		hdrRow := sJoin(hdrNames, ",")
 
 		if len(items) == 0 {
@@ -140,7 +140,7 @@ func Select(in []byte, R rune, CGrp []Condition, w io.Writer) (string, []string,
 				break NEXTCONDITION
 			}
 
-			if I := ts.IdxOf(C.Hdr, headers...); I != -1 {
+			if I := str.IdxOf(C.Hdr, headers...); I != -1 {
 				iVal := items[I]
 
 				if C.Rel == "=" {
@@ -228,7 +228,7 @@ func Select(in []byte, R rune, CGrp []Condition, w io.Writer) (string, []string,
 
 		// No conditions OR condition ok
 		if ok || len(CGrp) == 0 {
-			itemValues := ts.FM(items, nil, func(i int, e string) string { return mkValid(e) })
+			itemValues := str.FM(items, nil, func(i int, e string) string { return mkValid(e) })
 			return true, hdrRow, sJoin(itemValues, ",")
 		}
 

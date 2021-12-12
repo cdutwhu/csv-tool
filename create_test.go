@@ -3,11 +3,11 @@ package csvtool
 import (
 	"testing"
 
-	"github.com/digisan/gotk/generics/ts"
+	"github.com/digisan/go-generics/str"
 )
 
 func fortest() {
-	headersC := ts.MkSet("a", "b", "c", "a", "c", "d")
+	headersC := str.MkSet("a", "b", "c", "a", "c", "d")
 	fPln(headersC)
 }
 

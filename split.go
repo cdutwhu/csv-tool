@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/digisan/gotk/generics/ts"
+	"github.com/digisan/go-generics/str"
 )
 
 var (
@@ -78,7 +78,7 @@ func Split(csvfile, outputdir string, categories ...string) ([]string, []string,
 		return nil, nil, fEf("%v @ %s", err, csvfile)
 	}
 	if strictSchema && len(fileIgnoredOut) > 0 {
-		if !ts.Superset(headers, schema) || nRow == 0 {
+		if !str.Superset(headers, schema) || nRow == 0 {
 
 			nsCsvFile, _ := relPath(csvfile, false)
 			nsCsvFile = filepath.Join(fileIgnoredOut, nsCsvFile)
@@ -168,8 +168,8 @@ func split(rl int, in []byte, prevpath string, pCatItems ...string) error {
 	}
 	// --------------- end --------------- //
 
-	unirows := ts.MkSet(rows...)
-	unirows = ts.FM(unirows, func(i int, e string) bool { return len(sTrim(e, " \t")) > 0 }, nil)
+	unirows := str.MkSet(rows...)
+	unirows = str.FM(unirows, func(i int, e string) bool { return len(sTrim(e, " \t")) > 0 }, nil)
 
 	// Safe Mode, But Slow //
 	if !parallel {

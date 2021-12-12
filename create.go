@@ -1,13 +1,11 @@
 package csvtool
 
 import (
-	"github.com/digisan/gotk/generics/ti"
-	"github.com/digisan/gotk/generics/tis"
-	"github.com/digisan/gotk/generics/ts"
-	"github.com/digisan/gotk/generics/tsi"
+	"github.com/digisan/go-generics/i64"
+	"github.com/digisan/go-generics/i64s"
+	"github.com/digisan/go-generics/si64"
+	"github.com/digisan/go-generics/str"
 )
-
-
 
 // Create : create csv file with input headers
 func Create(outcsv string, hdrNames ...string) (string, error) {
@@ -15,7 +13,7 @@ func Create(outcsv string, hdrNames ...string) (string, error) {
 		return "", fEf("No Headers Provided")
 	}
 
-	headers := ts.FM(hdrNames, nil, func(i int, e string) string { return mkValid(e) })
+	headers := str.FM(hdrNames, nil, func(i int, e string) string { return mkValid(e) })
 	hdrRow := sJoin(headers, ",")
 	if outcsv != "" {
 		mustWriteFile(outcsv, []byte(hdrRow))
@@ -38,16 +36,16 @@ func Combine(csvfileA, csvfileB string, linkHeaders []string, onlyLinkedRow bool
 
 	headersA, _, err := FileInfo(csvfileA)
 	failOnErr("%v", err)
-	failOnErrWhen(!ts.SuperEq(headersA, linkHeaders), "%v", fEf("headers of csv-A must have every link header"))
+	failOnErrWhen(!str.SuperEq(headersA, linkHeaders), "%v", fEf("headers of csv-A must have every link header"))
 
 	headersB, _, err := FileInfo(csvfileB)
 	failOnErr("%v", err)
-	failOnErrWhen(!ts.SuperEq(headersB, linkHeaders), "%v", fEf("headers of csv-B must have every link header"))
+	failOnErrWhen(!str.SuperEq(headersB, linkHeaders), "%v", fEf("headers of csv-B must have every link header"))
 
-	Create(outcsv, ts.MkSet(ts.Union(headersA, headersB)...)...)
+	Create(outcsv, str.MkSet(str.Union(headersA, headersB)...)...)
 
-	lkIndicesA := tsi.FM(linkHeaders, nil, func(i int, e string) int { return ts.IdxOf(e, headersA...) })
-	lkIndicesB := tsi.FM(linkHeaders, nil, func(i int, e string) int { return ts.IdxOf(e, headersB...) })
+	lkIndicesA := si64.FM(linkHeaders, nil, func(i int, e string) int { return str.IdxOf(e, headersA...) })
+	lkIndicesB := si64.FM(linkHeaders, nil, func(i int, e string) int { return str.IdxOf(e, headersB...) })
 	emptyComma := sRepeat(",", len(headersB)-len(linkHeaders))
 	lkItemsGrp := [][]string{}
 	mAiBr := make(map[int]string)
@@ -56,9 +54,9 @@ func Combine(csvfileA, csvfileB string, linkHeaders []string, onlyLinkedRow bool
 		csvfileA,
 		func(i, n int, headers, items []string) (bool, string, string) {
 
-			lkrItems := tis.FM(lkIndicesA, nil, func(i, e int) string { return items[e] })
+			lkrItems := i64s.FM(lkIndicesA, nil, func(i, e int) string { return items[e] })
 			lkItemsGrp = append(lkItemsGrp, lkrItems)
-			items4w := ts.FM(items, nil, func(i int, e string) string { return mkValid(e) })
+			items4w := str.FM(items, nil, func(i int, e string) string { return mkValid(e) })
 			return true, "", sJoin(items4w, ",")
 		},
 		false,
@@ -69,9 +67,9 @@ func Combine(csvfileA, csvfileB string, linkHeaders []string, onlyLinkedRow bool
 		csvfileB,
 		func(i, n int, headers, items []string) (bool, string, string) {
 			for iAtRowA, lkrItems := range lkItemsGrp {
-				if ts.Superset(items, lkrItems) {
-					items4w := ts.FM(items,
-						func(i int, e string) bool { return ti.NotIn(i, lkIndicesB...) },
+				if str.Superset(items, lkrItems) {
+					items4w := str.FM(items,
+						func(i int, e string) bool { return i64.NotIn(i, lkIndicesB...) },
 						func(i int, e string) string { return mkValid(e) },
 					)
 					mAiBr[iAtRowA] = sJoin(items4w, ",")

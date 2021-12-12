@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/digisan/gotk/generics/ts"
+	"github.com/digisan/go-generics/str"
 )
 
 // ColumnAttr :
@@ -70,7 +70,7 @@ func ColAttr(r io.Reader, idx int) (*ColumnAttr, error) {
 		Idx:       idx,
 		Header:    hdr,
 		IsEmpty:   len(items) == 0,
-		IsUnique:  len(items) == len(ts.MkSet(items...)),
+		IsUnique:  len(items) == len(str.MkSet(items...)),
 		HasNull:   false,
 		HasEmpty:  false,
 		FilledAll: true,
